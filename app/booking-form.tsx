@@ -681,7 +681,14 @@ export default function BookingForm({
             className="text-[12.5px] text-muted leading-normal cursor-pointer"
           >
             Saya menyetujui{" "}
-            <b className="text-ink font-bold">syarat &amp; ketentuan</b>{" "}
+            <a
+              href="/syarat-dan-ketentuan"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-pine font-bold underline hover:text-gold transition-colors"
+            >
+              syarat &amp; ketentuan
+            </a>{" "}
             booking, termasuk kebijakan pembatalan dan keterlambatan Satu Meja
             Social Mahjong &amp; Game Club.
           </label>
