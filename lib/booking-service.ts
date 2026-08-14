@@ -21,19 +21,22 @@ export async function getTables(): Promise<TableItem[]> {
     // ponytail: fetch active assets from 'assets' table instead of 'tables'
     const { data: dbAssets } = await supabase
       .from("assets")
-      .select("id, asset_name, status")
+      .select("id, asset_name, status, outlet_id")
       .neq("status", "maintenance")
       .order("asset_name", { ascending: true });
 
     if (dbAssets && dbAssets.length > 0) {
-      return dbAssets.map((a: { id: number | string; asset_name?: string }) => {
-        const rawName = a.asset_name ? a.asset_name.toString() : `Asset ${a.id}`;
-        return {
-          id: a.id,
-          label: rawName,
-          name: rawName,
-        };
-      });
+      return dbAssets.map(
+        (a: { id: number | string; asset_name?: string; outlet_id?: string }) => {
+          const rawName = a.asset_name ? a.asset_name.toString() : `Asset ${a.id}`;
+          return {
+            id: a.id,
+            label: rawName,
+            name: rawName,
+            outletId: a.outlet_id,
+          };
+        }
+      );
     }
   } catch {
     // Fallback if DB fetch fails

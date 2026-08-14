@@ -18,6 +18,7 @@ export interface TableItem {
   id: number | string;
   label: string;
   name: string;
+  outletId?: string;
 }
 
 export interface VoucherItem {
@@ -107,6 +108,7 @@ export default function BookingForm({
 
   const [consent, setConsent] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState<string | null>(null);
+  const [bookingError, setBookingError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleTimeClick = (h: number) => {
@@ -207,47 +209,56 @@ export default function BookingForm({
     hasTime &&
     consent;
 
-  // ponytail: save order to Supabase orders table & increment voucher usage
+  // ponytail: execute create_web_booking RPC function on Supabase
   const handleSubmit = async () => {
     if (!isFormValid || !selectedTable || !startHour || !endHour || !dateObj)
       return;
+
+    const selectedItem = initialTables.find(
+      (t) => t.id === selectedTable || t.name === selectedTable
+    );
 
     const tableName =
       typeof selectedTable === "string"
         ? selectedTable
         : `Meja ${selectedTable}`;
 
+    const startHourStr = String(startHour).padStart(2, "0");
+    const startedAtIso = `${date}T${startHourStr}:00:00+07:00`;
+    const durationMinutes = (endHour - startHour) * 60;
+
     setIsSubmitting(true);
+    setBookingError(null);
+    setBookingSuccess(null);
+
     try {
       const supabase = createClient();
-      const subtotal = rate * totalHours;
-      await supabase.from("orders").insert([
-        {
-          table_name: tableName,
-          subtotal: subtotal,
-          discount_value: appliedVoucher?.value || 0,
-          discount_type: appliedVoucher?.type || null,
-          discount_amount: discount,
-          total: total,
-        },
-      ]);
+      const { error: rpcError } = await supabase.rpc("create_web_booking", {
+        p_outlet_id: selectedItem?.outletId || null,
+        p_asset_id: selectedItem?.id || null,
+        p_customer_name: name.trim(),
+        p_customer_phone: phone.trim(),
+        p_started_at: startedAtIso,
+        p_duration_minutes: durationMinutes,
+        p_hourly_rate: rate,
+        p_voucher_code: appliedVoucher?.code || null,
+      });
 
-      if (appliedVoucher) {
-        await supabase.rpc("increment_voucher_usage", {
-          p_code: appliedVoucher.code,
-        });
+      if (rpcError) {
+        setBookingError(rpcError.message || "Gagal membuat booking.");
+      } else {
+        const detail = `${name.trim()}, ${tableName} · ${formattedDateStr} · ${formattedTimeStr} · Total ${formatRp(
+          total,
+        )}`;
+        setBookingSuccess(detail);
       }
-    } catch {
-      // Silent error fallback to preserve smooth UX
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Terjadi kesalahan.";
+      setBookingError(msg);
     } finally {
       setIsSubmitting(false);
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
-
-    const detail = `${name.trim()}, ${tableName} · ${formattedDateStr} · ${formattedTimeStr} · Total ${formatRp(
-      total,
-    )}`;
-    setBookingSuccess(detail);
-    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const getSelectedTableLabel = () => {
@@ -264,6 +275,14 @@ export default function BookingForm({
             <b className="font-baloo">Booking terkonfirmasi!</b>
             <br />
             <span>{bookingSuccess}</span>
+          </div>
+        )}
+
+        {bookingError && (
+          <div className="bg-red text-cream-2 rounded-2xl p-[16px_18px] mb-4 text-[13.5px] leading-normal">
+            <b className="font-baloo">Booking Gagal</b>
+            <br />
+            <span>{bookingError}</span>
           </div>
         )}
 
