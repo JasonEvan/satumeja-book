@@ -146,3 +146,45 @@ export async function getVouchers(): Promise<Record<string, VoucherItem>> {
 
   return {};
 }
+
+export interface StoreSettingsData {
+  taxPercentage: number;
+  serviceChargePercentage: number;
+}
+
+export async function getStoreSettings(): Promise<StoreSettingsData> {
+  try {
+    const supabase = await createClient();
+    // ponytail: fetch store_settings for store_name 'Satu Meja'
+    const { data: specificData } = await supabase
+      .from("store_settings")
+      .select("tax_percentage, service_charge_percentage, store_name")
+      .ilike("store_name", "%Satu Meja%")
+      .limit(1)
+      .maybeSingle();
+
+    const data =
+      specificData ||
+      (
+        await supabase
+          .from("store_settings")
+          .select("tax_percentage, service_charge_percentage")
+          .limit(1)
+          .maybeSingle()
+      ).data;
+
+    if (data) {
+      return {
+        taxPercentage: Number(data.tax_percentage || 0),
+        serviceChargePercentage: Number(data.service_charge_percentage || 0),
+      };
+    }
+  } catch {
+    // Fallback if DB query fails
+  }
+
+  return {
+    taxPercentage: 0,
+    serviceChargePercentage: 0,
+  };
+}

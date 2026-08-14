@@ -3,6 +3,8 @@
 import { useState, useMemo, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
 
+import { StoreSettingsData } from "@/lib/booking-service";
+
 export interface RateItem {
   minHour: number;
   maxHour: number;
@@ -77,12 +79,14 @@ interface BookingFormProps {
   initialTables: TableItem[];
   initialRates: RatesData;
   initialVouchers: Record<string, VoucherItem>;
+  initialStoreSettings?: StoreSettingsData;
 }
 
 export default function BookingForm({
   initialTables,
   initialRates,
   initialVouchers,
+  initialStoreSettings,
 }: BookingFormProps) {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -262,10 +266,19 @@ export default function BookingForm({
   const hasTime = startHour !== null && endHour !== null;
   const totalHours = hasTime ? endHour - startHour : 0;
 
-  const { rate, discount, total } = useMemo(() => {
+  const {
+    rate,
+    subtotal,
+    discount,
+    serviceChargeAmount,
+    taxAmount,
+    total,
+  } = useMemo(() => {
     let rate = 0;
     let subtotal = 0;
     let discount = 0;
+    let serviceChargeAmount = 0;
+    let taxAmount = 0;
     let total = 0;
 
     if (totalHours > 0 && dateObj) {
@@ -278,11 +291,40 @@ export default function BookingForm({
             ? subtotal * (appliedVoucher.value / 100)
             : Math.min(appliedVoucher.value, subtotal);
       }
-      total = Math.max(subtotal - discount, 0);
+
+      const netSubtotal = Math.max(subtotal - discount, 0);
+
+      const servicePct = initialStoreSettings?.serviceChargePercentage || 0;
+      const taxPct = initialStoreSettings?.taxPercentage || 0;
+
+      if (servicePct > 0) {
+        serviceChargeAmount = Math.round(netSubtotal * (servicePct / 100));
+      }
+
+      if (taxPct > 0) {
+        taxAmount = Math.round(
+          (netSubtotal + serviceChargeAmount) * (taxPct / 100)
+        );
+      }
+
+      total = netSubtotal + serviceChargeAmount + taxAmount;
     }
 
-    return { rate, discount, total };
-  }, [totalHours, dateObj, appliedVoucher, initialRates]);
+    return {
+      rate,
+      subtotal,
+      discount,
+      serviceChargeAmount,
+      taxAmount,
+      total,
+    };
+  }, [
+    totalHours,
+    dateObj,
+    appliedVoucher,
+    initialRates,
+    initialStoreSettings,
+  ]);
 
   const formattedDateStr = dateObj
     ? dateObj.toLocaleDateString("id-ID", {
@@ -639,6 +681,14 @@ export default function BookingForm({
               {rate ? `${formatRp(rate)}/jam` : "Rp0"}
             </span>
           </div>
+          {subtotal > 0 && (
+            <div className="flex justify-between items-center text-[13.5px] py-1.5 text-ink">
+              <span className="text-muted">Subtotal</span>
+              <span className="font-semibold text-ink">
+                {formatRp(subtotal)}
+              </span>
+            </div>
+          )}
           {discount > 0 && (
             <div
               className="flex justify-between items-center text-[13.5px] py-1.5 text-ink"
@@ -650,6 +700,26 @@ export default function BookingForm({
                 id="sumDiscount"
               >
                 -{formatRp(discount)}
+              </span>
+            </div>
+          )}
+          {serviceChargeAmount > 0 && (
+            <div className="flex justify-between items-center text-[13.5px] py-1.5 text-ink">
+              <span className="text-muted">
+                Service Charge ({initialStoreSettings?.serviceChargePercentage}%)
+              </span>
+              <span className="font-semibold text-ink">
+                +{formatRp(serviceChargeAmount)}
+              </span>
+            </div>
+          )}
+          {taxAmount > 0 && (
+            <div className="flex justify-between items-center text-[13.5px] py-1.5 text-ink">
+              <span className="text-muted">
+                Pajak / Tax ({initialStoreSettings?.taxPercentage}%)
+              </span>
+              <span className="font-semibold text-ink">
+                +{formatRp(taxAmount)}
               </span>
             </div>
           )}

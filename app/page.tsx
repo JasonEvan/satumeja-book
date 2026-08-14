@@ -1,13 +1,20 @@
-import { getTables, getRates, getVouchers } from "@/lib/booking-service";
+import {
+  getTables,
+  getRates,
+  getVouchers,
+  getStoreSettings,
+} from "@/lib/booking-service";
 import BookingForm from "./booking-form";
 
 export default async function Home() {
   // SSR: Fetch initial data from Supabase on the server
-  const [initialTables, initialRates, initialVouchers] = await Promise.all([
-    getTables(),
-    getRates(),
-    getVouchers(),
-  ]);
+  const [initialTables, initialRates, initialVouchers, initialStoreSettings] =
+    await Promise.all([
+      getTables(),
+      getRates(),
+      getVouchers(),
+      getStoreSettings(),
+    ]);
 
   // Structured Data (JSON-LD) for LocalBusiness SEO
   const jsonLd = {
@@ -69,6 +76,7 @@ export default async function Home() {
         initialTables={initialTables}
         initialRates={initialRates}
         initialVouchers={initialVouchers}
+        initialStoreSettings={initialStoreSettings}
       />
     </main>
   );
