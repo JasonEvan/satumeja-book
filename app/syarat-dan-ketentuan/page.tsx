@@ -1,20 +1,26 @@
-import Link from "next/link";
-import type { Metadata } from "next";
-
-export const metadata: Metadata = {
-  title: "Syarat & Ketentuan — Satu Meja Mahjong & Game Club",
-  description:
-    "Syarat dan ketentuan reservasi meja, kebijakan keterlambatan, pembatalan, dan aturan penggunaan peralatan di Satu Meja Social Mahjong & Game Club.",
-};
+"use client";
 
 export default function SyaratDanKetentuanPage() {
+  const handleCloseTab = () => {
+    if (typeof window !== "undefined") {
+      window.close();
+      // Fallback if browser blocks window.close() (e.g. direct navigation)
+      setTimeout(() => {
+        if (!window.closed) {
+          window.location.href = "/";
+        }
+      }, 150);
+    }
+  };
+
   return (
     <main className="w-full max-w-2xl mx-auto py-8 px-4 font-inter text-ink">
-      {/* Header Back Button */}
+      {/* Header Back / Close Button */}
       <div className="mb-6">
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2 font-baloo font-bold text-sm text-pine bg-cream-2 border-[1.5px] border-[#d8cfa9] rounded-xl px-4 py-2.5 hover:border-pine hover:bg-white transition-all shadow-xs"
+        <button
+          type="button"
+          onClick={handleCloseTab}
+          className="inline-flex items-center gap-2 font-baloo font-bold text-sm text-pine bg-cream-2 border-[1.5px] border-[#d8cfa9] rounded-xl px-4 py-2.5 hover:border-pine hover:bg-white transition-all shadow-xs cursor-pointer"
         >
           <svg
             className="w-4 h-4 text-pine"
@@ -29,8 +35,8 @@ export default function SyaratDanKetentuanPage() {
               d="M10 19l-7-7m0 0l7-7m-7 7h18"
             />
           </svg>
-          Kembali ke Form Booking
-        </Link>
+          Tutup &amp; Kembali ke Booking
+        </button>
       </div>
 
       {/* Main Container Card */}
@@ -171,12 +177,13 @@ export default function SyaratDanKetentuanPage() {
             Dengan mengonfirmasi booking, Anda dianggap telah membaca, memahami, dan menyetujui seluruh syarat &amp; ketentuan di atas.
           </p>
           <div>
-            <Link
-              href="/"
+            <button
+              type="button"
+              onClick={handleCloseTab}
               className="inline-flex items-center justify-center min-h-[48px] bg-gold text-pine border-none rounded-2xl py-3 px-8 font-baloo font-extrabold text-lg sm:text-xl tracking-wide cursor-pointer transition-all duration-150 shadow-[0_4px_0_0_#a9843a] hover:bg-gold-soft active:translate-y-0.5 active:shadow-[0_2px_0_0_#a9843a]"
             >
-              Saya Mengerti &amp; Kembali
-            </Link>
+              Saya Mengerti &amp; Tutup Halaman Ini
+            </button>
           </div>
         </div>
       </div>
