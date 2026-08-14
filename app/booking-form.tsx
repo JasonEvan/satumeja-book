@@ -269,18 +269,18 @@ export default function BookingForm({
   return (
     <section aria-label="Form Booking Mahjong">
       {/* Card Form */}
-      <div className="bg-cream-2 border-2 border-pine rounded-3xl pt-6.5 px-5.5 pb-3xl relative shadow-[0_10px_0_-4px_rgba(27,58,43,0.08),0_18px_40px_-20px_rgba(27,58,43,0.35)] before:content-[''] before:absolute before:inset-1.5 before:border before:border-dashed before:border-gold before:rounded-[19px] before:pointer-events-none before:opacity-55">
+      <div className="bg-cream-2 border-2 border-pine rounded-3xl p-6 relative shadow-[0_10px_0_-4px_rgba(27,58,43,0.08),0_18px_40px_-20px_rgba(27,58,43,0.35)] before:content-[''] before:absolute before:inset-1.5 before:border before:border-dashed before:border-gold before:rounded-[19px] before:pointer-events-none before:opacity-55">
         {bookingSuccess && (
-          <div className="bg-pine text-cream-2 rounded-2xl p-[16px_18px] mb-4 text-[13.5px] leading-normal">
-            <b className="font-baloo">Booking terkonfirmasi!</b>
+          <div className="bg-pine text-cream-2 rounded-2xl p-4 mb-4 text-[13.5px] leading-normal shadow-sm">
+            <b className="font-baloo text-base">Booking terkonfirmasi!</b>
             <br />
             <span>{bookingSuccess}</span>
           </div>
         )}
 
         {bookingError && (
-          <div className="bg-red text-cream-2 rounded-2xl p-[16px_18px] mb-4 text-[13.5px] leading-normal">
-            <b className="font-baloo">Booking Gagal</b>
+          <div className="bg-red text-cream-2 rounded-2xl p-4 mb-4 text-[13.5px] leading-normal shadow-sm">
+            <b className="font-baloo text-base">Booking Gagal</b>
             <br />
             <span>{bookingError}</span>
           </div>
@@ -290,7 +290,7 @@ export default function BookingForm({
         <div className="mb-4">
           <label
             htmlFor="name"
-            className="block font-baloo font-semibold text-[13.5px] text-pine mb-1.5 tracking-[0.02em]"
+            className="block font-baloo font-semibold text-[13.5px] text-pine mb-1.5 tracking-wide"
           >
             Nama
           </label>
@@ -300,7 +300,7 @@ export default function BookingForm({
             placeholder="Nama lengkap"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full bg-white border-[1.5px] border-[#d8cfa9] rounded-xl px-3.25 py-2.75 font-inter text-[14.5px] text-ink outline-none transition-all duration-150 appearance-none focus:border-pine focus:ring-3 focus:ring-pine/12 placeholder:text-[#b9b09a]"
+            className="w-full bg-white border-[1.5px] border-[#d8cfa9] rounded-xl px-3.5 py-2.5 font-inter text-[14px] text-ink outline-none transition-all duration-150 appearance-none focus:border-pine focus:ring-2 focus:ring-pine/15 placeholder:text-[#b9b09a]"
           />
         </div>
 
@@ -308,7 +308,7 @@ export default function BookingForm({
         <div className="mb-4">
           <label
             htmlFor="phone"
-            className="block font-baloo font-semibold text-[13.5px] text-pine mb-1.5 tracking-[0.02em]"
+            className="block font-baloo font-semibold text-[13.5px] text-pine mb-1.5 tracking-wide"
           >
             Nomor HP
           </label>
@@ -318,7 +318,7 @@ export default function BookingForm({
             placeholder="08xxxxxxxxxx"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
-            className="w-full bg-white border-[1.5px] border-[#d8cfa9] rounded-xl px-3.25 py-2.75 font-inter text-[14.5px] text-ink outline-none transition-all duration-150 appearance-none focus:border-pine focus:ring-3 focus:ring-pine/12 placeholder:text-[#b9b09a]"
+            className="w-full bg-white border-[1.5px] border-[#d8cfa9] rounded-xl px-3.5 py-2.5 font-inter text-[14px] text-ink outline-none transition-all duration-150 appearance-none focus:border-pine focus:ring-2 focus:ring-pine/15 placeholder:text-[#b9b09a]"
           />
         </div>
 
@@ -326,7 +326,7 @@ export default function BookingForm({
         <div className="mb-4">
           <label
             htmlFor="date"
-            className="block font-baloo font-semibold text-[13.5px] text-pine mb-1.5 tracking-[0.02em]"
+            className="block font-baloo font-semibold text-[13.5px] text-pine mb-1.5 tracking-wide"
           >
             Tanggal{" "}
             <span className="font-normal text-muted text-xs ml-1">(WIB)</span>
@@ -337,17 +337,17 @@ export default function BookingForm({
             min={minDate}
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="w-full bg-white border-[1.5px] border-[#d8cfa9] rounded-xl px-3.25 py-2.75 font-inter text-[14.5px] text-ink outline-none transition-all duration-150 appearance-none focus:border-pine focus:ring-3 focus:ring-pine/12 placeholder:text-[#b9b09a]"
+            className="w-full bg-white border-[1.5px] border-[#d8cfa9] rounded-xl px-3.5 py-2.5 font-inter text-[14px] text-ink outline-none transition-all duration-150 appearance-none focus:border-pine focus:ring-2 focus:ring-pine/15 placeholder:text-[#b9b09a]"
           />
         </div>
 
-        {/* Meja */}
+        {/* Meja / Asset Grid */}
         <div className="mb-4">
-          <label className="block font-baloo font-semibold text-[13.5px] text-pine mb-1.5 tracking-[0.02em]">
-            Meja
+          <label className="block font-baloo font-semibold text-[13.5px] text-pine mb-1.5 tracking-wide">
+            Pilih Meja / Unit
           </label>
           <div
-            className="grid grid-cols-6 gap-2 max-[380px]:gap-1.5"
+            className="grid grid-cols-3 sm:grid-cols-6 gap-2"
             id="tableGrid"
           >
             {initialTables.map((t) => {
@@ -358,9 +358,9 @@ export default function BookingForm({
                   key={t.id}
                   type="button"
                   onClick={() => setSelectedTable(t.name)}
-                  className={`aspect-square rounded-[10px] border-[1.5px] font-baloo font-bold text-xs sm:text-sm p-1 text-center leading-tight wrap-break-word cursor-pointer transition-all duration-150 flex items-center justify-center ${
+                  className={`min-h-[44px] rounded-xl border-[1.5px] font-baloo font-bold text-xs sm:text-sm p-2 text-center leading-tight break-words cursor-pointer transition-all duration-150 flex items-center justify-center ${
                     isActive
-                      ? "bg-pine border-pine text-cream-2 shadow-[0_4px_0_-1px_rgba(27,58,43,0.3)]"
+                      ? "bg-pine border-pine text-cream-2 shadow-[0_3px_0_0_rgba(27,58,43,0.3)]"
                       : "bg-white border-[#d8cfa9] text-pine hover:border-gold"
                   }`}
                 >
@@ -373,7 +373,7 @@ export default function BookingForm({
 
         {/* Pilih Jam */}
         <div className="mb-4">
-          <label className="block font-baloo font-semibold text-[13.5px] text-pine mb-1.5 tracking-[0.02em]">
+          <label className="block font-baloo font-semibold text-[13.5px] text-pine mb-1.5 tracking-wide">
             Pilih Jam{" "}
             <span className="font-normal text-muted text-xs ml-1">
               (klik jam mulai, lalu jam selesai)
@@ -393,10 +393,10 @@ export default function BookingForm({
                 h < endHour;
 
               let btnClass =
-                "py-[9px] px-[4px] rounded-[10px] border-[1.5px] border-[#d8cfa9] bg-white font-inter font-semibold text-[12.5px] text-ink cursor-pointer transition-all duration-150 text-center hover:border-gold";
+                "py-2 px-1 rounded-xl border-[1.5px] border-[#d8cfa9] bg-white font-inter font-semibold text-[12.5px] text-ink cursor-pointer transition-all duration-150 text-center hover:border-gold";
 
               if (isStart || isEnd) {
-                btnClass += " !bg-gold !border-gold !text-pine";
+                btnClass += " !bg-gold !border-gold !text-pine font-bold shadow-xs";
               } else if (inRange) {
                 btnClass += " !bg-gold-soft !border-gold";
               }
@@ -422,28 +422,27 @@ export default function BookingForm({
         <div className="mb-4">
           <label
             htmlFor="voucher"
-            className="block font-baloo font-semibold text-[13.5px] text-pine mb-1.5 tracking-[0.02em]"
+            className="block font-baloo font-semibold text-[13.5px] text-pine mb-1.5 tracking-wide"
           >
             Kode Voucher{" "}
             <span className="font-normal text-muted text-xs ml-1">
               (opsional)
             </span>
           </label>
-          {/* ponytail: stacked input & button vertically to prevent mobile horizontal overflow */}
-          <div className="flex flex-col gap-2">
+          <div className="flex gap-2">
             <input
               type="text"
               id="voucher"
               placeholder="Masukkan kode"
               value={voucherInput}
               onChange={(e) => setVoucherInput(e.target.value)}
-              className="w-full bg-white border-[1.5px] border-[#d8cfa9] rounded-xl px-3.25 py-2.75 font-inter text-[14.5px] text-ink outline-none transition-all duration-150 appearance-none focus:border-pine focus:ring-3 focus:ring-pine/12 placeholder:text-[#b9b09a]"
+              className="flex-1 bg-white border-[1.5px] border-[#d8cfa9] rounded-xl px-3.5 py-2.5 font-inter text-[14px] text-ink outline-none transition-all duration-150 appearance-none focus:border-pine focus:ring-2 focus:ring-pine/15 placeholder:text-[#b9b09a]"
             />
             <button
               type="button"
               id="applyVoucher"
               onClick={handleApplyVoucher}
-              className="w-full bg-pine text-cream-2 border-none rounded-xl py-2.5 font-baloo font-semibold text-[13.5px] cursor-pointer whitespace-nowrap transition-colors duration-150 hover:bg-pine-2"
+              className="bg-pine text-cream-2 border-none rounded-xl px-4 py-2.5 font-baloo font-semibold text-[13.5px] cursor-pointer whitespace-nowrap transition-colors duration-150 hover:bg-pine-2 shadow-xs"
             >
               Terapkan
             </button>
@@ -463,7 +462,7 @@ export default function BookingForm({
         </div>
 
         {/* Ribbon */}
-        <div className="bg-pine text-cream-2 text-center font-baloo font-bold text-[13px] tracking-wider py-2 px-4 rounded-full mt-5 mb-3.5">
+        <div className="bg-pine text-cream-2 text-center font-baloo font-bold text-[13px] tracking-wider py-2 px-4 rounded-full mt-5 mb-3.5 shadow-xs">
           RINGKASAN PESANAN
         </div>
 
@@ -532,13 +531,13 @@ export default function BookingForm({
         </div>
 
         {/* Consent */}
-        <div className="flex items-start gap-2.5 mt-4.5 mb-1.5">
+        <div className="flex items-start gap-2.5 mt-4 mb-2">
           <input
             type="checkbox"
             id="consent"
             checked={consent}
             onChange={(e) => setConsent(e.target.checked)}
-            className="mt-0.75 w-4.5 h-4.5 accent-pine shrink-0 cursor-pointer"
+            className="mt-0.5 w-4 h-4 accent-pine shrink-0 cursor-pointer"
           />
           <label
             htmlFor="consent"
@@ -557,7 +556,7 @@ export default function BookingForm({
           id="submitBtn"
           disabled={!isFormValid || isSubmitting}
           onClick={handleSubmit}
-          className="w-full bg-gold text-pine border-none rounded-3.5 p-3.75 font-baloo font-bold text-2xl tracking-[0.03em] cursor-pointer mt-1.5 transition-all duration-150 shadow-[0_4px_0_0_#a9843a] hover:enabled:bg-gold-soft active:enabled:translate-y-0.5 active:enabled:shadow-[0_2px_0_0_#a9843a] disabled:opacity-45 disabled:cursor-not-allowed disabled:shadow-none"
+          className="w-full bg-gold text-pine border-none rounded-2xl py-3.5 px-4 font-baloo font-bold text-xl tracking-wide cursor-pointer mt-2 transition-all duration-150 shadow-[0_4px_0_0_#a9843a] hover:enabled:bg-gold-soft active:enabled:translate-y-0.5 active:enabled:shadow-[0_2px_0_0_#a9843a] disabled:opacity-45 disabled:cursor-not-allowed disabled:shadow-none"
         >
           {isSubmitting ? "Memproses..." : "Konfirmasi Booking"}
         </button>
