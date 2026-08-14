@@ -310,7 +310,7 @@ export default function BookingForm({
             className="block font-baloo font-semibold text-[13.5px] text-pine mb-1.5 tracking-[0.02em]"
           >
             Tanggal{" "}
-            <span className="font-normal text-muted text-xl ml-1">(WIB)</span>
+            <span className="font-normal text-muted text-xs ml-1">(WIB)</span>
           </label>
           <input
             type="date"
@@ -339,7 +339,7 @@ export default function BookingForm({
                   key={t.id}
                   type="button"
                   onClick={() => setSelectedTable(t.name)}
-                  className={`aspect-square rounded-[10px] border-[1.5px] font-baloo font-bold text-xs sm:text-sm p-1 text-center leading-tight break-words cursor-pointer transition-all duration-150 flex items-center justify-center ${
+                  className={`aspect-square rounded-[10px] border-[1.5px] font-baloo font-bold text-xs sm:text-sm p-1 text-center leading-tight wrap-break-word cursor-pointer transition-all duration-150 flex items-center justify-center ${
                     isActive
                       ? "bg-pine border-pine text-cream-2 shadow-[0_4px_0_-1px_rgba(27,58,43,0.3)]"
                       : "bg-white border-[#d8cfa9] text-pine hover:border-gold"
@@ -356,7 +356,7 @@ export default function BookingForm({
         <div className="mb-4">
           <label className="block font-baloo font-semibold text-[13.5px] text-pine mb-1.5 tracking-[0.02em]">
             Pilih Jam{" "}
-            <span className="font-normal text-muted text-xl ml-1">
+            <span className="font-normal text-muted text-xs ml-1">
               (klik jam mulai, lalu jam selesai)
             </span>
           </label>
@@ -406,7 +406,7 @@ export default function BookingForm({
             className="block font-baloo font-semibold text-[13.5px] text-pine mb-1.5 tracking-[0.02em]"
           >
             Kode Voucher{" "}
-            <span className="font-normal text-muted text-xl ml-1">
+            <span className="font-normal text-muted text-xs ml-1">
               (opsional)
             </span>
           </label>
@@ -424,14 +424,14 @@ export default function BookingForm({
               type="button"
               id="applyVoucher"
               onClick={handleApplyVoucher}
-              className="w-full bg-pine text-cream-2 border-none rounded-xl py-2.75 font-baloo font-semibold text-3.25 cursor-pointer whitespace-nowrap transition-colors duration-150 hover:bg-pine-2"
+              className="w-full bg-pine text-cream-2 border-none rounded-xl py-2.5 font-baloo font-semibold text-[13.5px] cursor-pointer whitespace-nowrap transition-colors duration-150 hover:bg-pine-2"
             >
               Terapkan
             </button>
           </div>
           <div
             id="voucherMsg"
-            className={`text-xl mt-1.5 min-h-3.5 ${
+            className={`text-[12.5px] mt-1.5 min-h-3.5 ${
               voucherMsg?.type === "ok"
                 ? "text-pine font-semibold"
                 : voucherMsg?.type === "err"
@@ -444,33 +444,41 @@ export default function BookingForm({
         </div>
 
         {/* Ribbon */}
-        <div className="bg-pine text-cream-2 text-center font-baloo font-bold text-3.25 tracking-wider py-2 px-xl rounded-full mt-5.5 mb-3.5">
+        <div className="bg-pine text-cream-2 text-center font-baloo font-bold text-[13px] tracking-wider py-2 px-4 rounded-full mt-5 mb-3.5">
           RINGKASAN PESANAN
         </div>
 
         {/* Summary Box */}
-        <div className="border-[1.5px] border-dashed border-gold rounded-3.5 p-[14px_16px] bg-[#fffdf5]">
-          <div className="flex justify-between items-center text-[13.5px] py-1.25 text-ink">
+        <div className="border-[1.5px] border-dashed border-gold rounded-2xl p-4 bg-[#fffdf5]">
+          <div className="flex justify-between items-center text-[13.5px] py-1.5 text-ink">
             <span className="text-muted">Meja</span>
-            <span id="sumTable">{getSelectedTableLabel()}</span>
+            <span id="sumTable" className="font-semibold text-pine">
+              {getSelectedTableLabel()}
+            </span>
           </div>
-          <div className="flex justify-between items-center text-[13.5px] py-1.25 text-ink">
+          <div className="flex justify-between items-center text-[13.5px] py-1.5 text-ink">
             <span className="text-muted">Tanggal</span>
-            <span id="sumDate">{formattedDateStr}</span>
+            <span id="sumDate" className="font-semibold">
+              {formattedDateStr}
+            </span>
           </div>
-          <div className="flex justify-between items-center text-[13.5px] py-1.25 text-ink">
+          <div className="flex justify-between items-center text-[13.5px] py-1.5 text-ink">
             <span className="text-muted">Jam</span>
-            <span id="sumTime">{formattedTimeStr}</span>
+            <span id="sumTime" className="font-semibold">
+              {formattedTimeStr}
+            </span>
           </div>
-          <div className="flex justify-between items-center text-[13.5px] py-1.25 text-ink">
+          <div className="flex justify-between items-center text-[13.5px] py-1.5 text-ink">
             <span className="text-muted">Total Jam</span>
-            <span id="sumHours">{totalHours ? `${totalHours} jam` : "—"}</span>
+            <span id="sumHours" className="font-semibold">
+              {totalHours ? `${totalHours} jam` : "—"}
+            </span>
           </div>
           <div className="border-t border-dashed border-[#d8cfa9] my-2" />
-          <div className="flex justify-between items-center text-[13.5px] py-1.25 text-ink">
+          <div className="flex justify-between items-center text-[13.5px] py-1.5 text-ink">
             <span className="text-muted">Tarif per jam</span>
             <span
-              className="bg-pine text-cream-2 font-baloo font-bold text-3.25 px-xl py-1 rounded-full tracking-[0.02em]"
+              className="bg-pine text-cream-2 font-baloo font-bold text-[13px] px-3 py-1 rounded-full tracking-wide shadow-xs"
               id="sumRate"
             >
               {rate ? `${formatRp(rate)}/jam` : "Rp0"}
@@ -478,12 +486,12 @@ export default function BookingForm({
           </div>
           {discount > 0 && (
             <div
-              className="flex justify-between items-center text-[13.5px] py-1.25 text-ink"
+              className="flex justify-between items-center text-[13.5px] py-1.5 text-ink"
               id="discountRow"
             >
               <span className="text-muted">Diskon voucher</span>
               <span
-                className="bg-[#3f7452] text-cream-2 font-baloo font-bold text-3.25 px-xl py-1 rounded-full tracking-[0.02em]"
+                className="bg-[#3f7452] text-cream-2 font-baloo font-bold text-[13px] px-3 py-1 rounded-full tracking-wide shadow-xs"
                 id="sumDiscount"
               >
                 -{formatRp(discount)}
@@ -491,12 +499,12 @@ export default function BookingForm({
             </div>
           )}
           <div className="border-t border-dashed border-[#d8cfa9] my-2" />
-          <div className="flex justify-between items-center text-[13.5px] py-1.25 text-ink">
+          <div className="flex justify-between items-center text-[13.5px] py-1.5 text-ink">
             <span className="font-baloo font-bold text-pine text-[15px]">
               Total Harga
             </span>
             <span
-              className="bg-red text-cream-2 font-baloo font-bold text-2xl px-2xl py-1.5 rounded-full tracking-[0.02em]"
+              className="bg-red text-cream-2 font-baloo font-bold text-[17px] px-3.5 py-1 rounded-full tracking-wide shadow-xs"
               id="sumTotal"
             >
               {formatRp(total)}
