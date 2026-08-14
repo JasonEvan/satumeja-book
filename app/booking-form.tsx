@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
 
 export interface RateItem {
@@ -111,7 +111,85 @@ export default function BookingForm({
   const [bookingError, setBookingError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const [reservedHours, setReservedHours] = useState<Set<number>>(new Set());
+
+  // Fetch reserved time slots asynchronously from Supabase when selectedTable or date changes
+  useEffect(() => {
+    if (!selectedTable || !date) return;
+
+    const selectedItem = initialTables.find(
+      (t) => t.id === selectedTable || t.name === selectedTable
+    );
+
+    if (!selectedItem?.id) return;
+
+    let isMounted = true;
+
+    const fetchReservedSlots = async () => {
+      try {
+        const supabase = createClient();
+        const dayStartIso = `${date}T00:00:00+07:00`;
+        const dayEndIso = `${date}T23:59:59+07:00`;
+
+        const { data: dbRentals } = await supabase
+          .from("rentals")
+          .select("started_at, estimated_ended_at, status")
+          .eq("asset_id", selectedItem.id)
+          .in("status", ["active", "reserved"])
+          .gte("started_at", dayStartIso)
+          .lte("started_at", dayEndIso);
+
+        if (isMounted && dbRentals) {
+          const booked = new Set<number>();
+          dbRentals.forEach((r) => {
+            if (!r.started_at || !r.estimated_ended_at) return;
+
+            const startWib = new Date(
+              new Date(r.started_at).toLocaleString("en-US", {
+                timeZone: "Asia/Jakarta",
+              })
+            );
+            const endWib = new Date(
+              new Date(r.estimated_ended_at).toLocaleString("en-US", {
+                timeZone: "Asia/Jakarta",
+              })
+            );
+
+            const startH = startWib.getHours();
+            let endH = endWib.getHours();
+            if (endWib.getMinutes() > 0) {
+              endH += 1;
+            }
+
+            for (let h = startH; h < endH; h++) {
+              if (h >= OPEN_HOUR && h <= CLOSE_HOUR) {
+                booked.add(h);
+              }
+            }
+          });
+
+          setReservedHours(booked);
+        }
+      } catch {
+        // Fallback
+      }
+    };
+
+    fetchReservedSlots();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedTable, date, initialTables]);
+
+  const activeReservedHours = useMemo(() => {
+    if (!selectedTable || !date) return new Set<number>();
+    return reservedHours;
+  }, [selectedTable, date, reservedHours]);
+
   const handleTimeClick = (h: number) => {
+    if (!selectedTable || activeReservedHours.has(h)) return;
+
     if (startHour === null || (startHour !== null && endHour !== null)) {
       setStartHour(h);
       setEndHour(null);
@@ -120,13 +198,31 @@ export default function BookingForm({
         setStartHour(h);
         setEndHour(null);
       } else {
-        setEndHour(h);
+        // Prevent selecting across an existing reservation
+        let hasConflict = false;
+        for (let k = startHour; k < h; k++) {
+          if (activeReservedHours.has(k)) {
+            hasConflict = true;
+            break;
+          }
+        }
+
+        if (hasConflict) {
+          setStartHour(h);
+          setEndHour(null);
+        } else {
+          setEndHour(h);
+        }
       }
     }
   };
 
   const getTimeHintText = () => {
-    if (startHour === null) {
+    if (!date) {
+      return "Silakan pilih tanggal terlebih dahulu.";
+    } else if (!selectedTable) {
+      return "Silakan pilih meja terlebih dahulu.";
+    } else if (startHour === null) {
       return "Belum ada jam dipilih.";
     } else if (endHour === null) {
       return `Mulai ${fmtHour(startHour)} — klik jam selesai.`;
@@ -344,25 +440,49 @@ export default function BookingForm({
         {/* Meja / Asset Grid */}
         <div className="mb-4">
           <label className="block font-baloo font-semibold text-[13.5px] text-pine mb-1.5 tracking-wide">
-            Pilih Meja / Unit
+            Pilih Meja / Unit{" "}
+            {!date && (
+              <span className="font-normal text-muted text-xs ml-1">
+                (pilih tanggal terlebih dahulu)
+              </span>
+            )}
           </label>
           <div
             className="grid grid-cols-3 sm:grid-cols-6 gap-2"
             id="tableGrid"
           >
             {initialTables.map((t) => {
+              const isDateSelected = date !== "";
               const isActive =
-                selectedTable === t.id || selectedTable === t.name;
+                isDateSelected &&
+                (selectedTable === t.id || selectedTable === t.name);
+
+              let btnClass =
+                "min-h-[44px] rounded-xl border-[1.5px] font-baloo font-bold text-xs sm:text-sm p-2 text-center leading-tight break-words transition-all duration-150 flex items-center justify-center";
+
+              if (!isDateSelected) {
+                btnClass +=
+                  " bg-[#eae5d8] border-[#d8cfa9] text-[#a09885] cursor-not-allowed opacity-75";
+              } else if (isActive) {
+                btnClass +=
+                  " bg-pine border-pine text-cream-2 shadow-[0_3px_0_0_rgba(27,58,43,0.3)] cursor-pointer";
+              } else {
+                btnClass +=
+                  " bg-white border-[#d8cfa9] text-pine hover:border-gold cursor-pointer";
+              }
+
               return (
                 <button
                   key={t.id}
                   type="button"
+                  disabled={!isDateSelected}
                   onClick={() => setSelectedTable(t.name)}
-                  className={`min-h-[44px] rounded-xl border-[1.5px] font-baloo font-bold text-xs sm:text-sm p-2 text-center leading-tight break-words cursor-pointer transition-all duration-150 flex items-center justify-center ${
-                    isActive
-                      ? "bg-pine border-pine text-cream-2 shadow-[0_3px_0_0_rgba(27,58,43,0.3)]"
-                      : "bg-white border-[#d8cfa9] text-pine hover:border-gold"
-                  }`}
+                  className={btnClass}
+                  title={
+                    !isDateSelected
+                      ? "Silakan pilih tanggal terlebih dahulu"
+                      : undefined
+                  }
                 >
                   {t.label}
                 </button>
@@ -384,6 +504,9 @@ export default function BookingForm({
             id="timeGrid"
           >
             {HOURS.map((h) => {
+              const isTableSelected = selectedTable !== null;
+              const isReserved = activeReservedHours.has(h);
+              const isDisabled = !isTableSelected || isReserved;
               const isStart = startHour === h;
               const isEnd = endHour === h;
               const inRange =
@@ -393,20 +516,34 @@ export default function BookingForm({
                 h < endHour;
 
               let btnClass =
-                "py-2 px-1 rounded-xl border-[1.5px] border-[#d8cfa9] bg-white font-inter font-semibold text-[12.5px] text-ink cursor-pointer transition-all duration-150 text-center hover:border-gold";
+                "py-2 px-1 rounded-xl border-[1.5px] border-[#d8cfa9] font-inter font-semibold text-[12.5px] text-center transition-all duration-150";
 
-              if (isStart || isEnd) {
-                btnClass += " !bg-gold !border-gold !text-pine font-bold shadow-xs";
+              if (isDisabled) {
+                btnClass +=
+                  " !bg-[#eae5d8] !border-[#d8cfa9] !text-[#a09885] !cursor-not-allowed opacity-75" +
+                  (isReserved ? " line-through" : "");
+              } else if (isStart || isEnd) {
+                btnClass += " !bg-gold !border-gold !text-pine font-bold shadow-xs cursor-pointer";
               } else if (inRange) {
-                btnClass += " !bg-gold-soft !border-gold";
+                btnClass += " !bg-gold-soft !border-gold cursor-pointer";
+              } else {
+                btnClass += " bg-white text-ink cursor-pointer hover:border-gold";
               }
+
+              const tooltip = !isTableSelected
+                ? "Silakan pilih meja terlebih dahulu"
+                : isReserved
+                  ? "Meja/Unit ini sudah dipesan pada jam ini"
+                  : undefined;
 
               return (
                 <button
                   key={h}
                   type="button"
+                  disabled={isDisabled}
                   onClick={() => handleTimeClick(h)}
                   className={btnClass}
+                  title={tooltip}
                 >
                   {fmtHour(h)}
                 </button>
