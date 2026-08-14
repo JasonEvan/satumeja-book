@@ -6,12 +6,16 @@ const baloo2 = Baloo_2({
   variable: "--font-baloo-2",
   subsets: ["latin"],
   weight: ["500", "600", "700", "800"],
+  display: "swap",
+  preload: true,
 });
 
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
+  display: "swap",
+  preload: true,
 });
 
 export const metadata: Metadata = {

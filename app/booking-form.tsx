@@ -269,7 +269,7 @@ export default function BookingForm({
   return (
     <section aria-label="Form Booking Mahjong">
       {/* Card Form */}
-      <div className="bg-cream-2 border-2 border-pine rounded-3xl p-6 relative shadow-[0_10px_0_-4px_rgba(27,58,43,0.08),0_18px_40px_-20px_rgba(27,58,43,0.35)] before:content-[''] before:absolute before:inset-1.5 before:border before:border-dashed before:border-gold before:rounded-[19px] before:pointer-events-none before:opacity-55">
+      <div className="bg-cream-2 border-2 border-pine rounded-3xl p-6 relative shadow-[0_10px_0_-4px_rgba(27,58,43,0.08),0_18px_40px_-20px_rgba(27,58,43,0.35)] before:content-[''] before:absolute before:top-1.5 before:right-1.5 before:bottom-1.5 before:left-1.5 before:border before:border-dashed before:border-gold before:rounded-[19px] before:pointer-events-none before:opacity-55">
         {bookingSuccess && (
           <div className="bg-pine text-cream-2 rounded-2xl p-4 mb-4 text-[13.5px] leading-normal shadow-sm">
             <b className="font-baloo text-base">Booking terkonfirmasi!</b>
