@@ -18,16 +18,18 @@ const DEFAULT_RATES: RatesData = {
 export async function getTables(): Promise<TableItem[]> {
   try {
     const supabase = await createClient();
-    const { data: dbTables } = await supabase
-      .from("tables")
-      .select("*")
-      .eq("is_active", true);
+    // ponytail: fetch active assets from 'assets' table instead of 'tables'
+    const { data: dbAssets } = await supabase
+      .from("assets")
+      .select("id, asset_name, status")
+      .neq("status", "maintenance")
+      .order("asset_name", { ascending: true });
 
-    if (dbTables && dbTables.length > 0) {
-      return dbTables.map((t: { id: number | string; name?: string }) => {
-        const rawName = t.name ? t.name.toString() : `Meja ${t.id}`;
+    if (dbAssets && dbAssets.length > 0) {
+      return dbAssets.map((a: { id: number | string; asset_name?: string }) => {
+        const rawName = a.asset_name ? a.asset_name.toString() : `Asset ${a.id}`;
         return {
-          id: t.id,
+          id: a.id,
           label: rawName,
           name: rawName,
         };

@@ -213,11 +213,9 @@ export default function BookingForm({
       return;
 
     const tableName =
-      typeof selectedTable === "number"
-        ? `Meja ${selectedTable}`
-        : selectedTable.startsWith("Meja")
-          ? selectedTable
-          : `Meja ${selectedTable}`;
+      typeof selectedTable === "string"
+        ? selectedTable
+        : `Meja ${selectedTable}`;
 
     setIsSubmitting(true);
     try {
@@ -254,10 +252,7 @@ export default function BookingForm({
 
   const getSelectedTableLabel = () => {
     if (!selectedTable) return "—";
-    if (typeof selectedTable === "number") return `Meja ${selectedTable}`;
-    return selectedTable.startsWith("Meja")
-      ? selectedTable
-      : `Meja ${selectedTable}`;
+    return String(selectedTable);
   };
 
   return (
@@ -344,10 +339,10 @@ export default function BookingForm({
                   key={t.id}
                   type="button"
                   onClick={() => setSelectedTable(t.name)}
-                  className={`aspect-square rounded-[10px] border-[1.5px] border-[#d8cfa9] bg-white font-baloo font-bold text-2xl cursor-pointer transition-all duration-150 flex items-center justify-center hover:border-gold ${
+                  className={`aspect-square rounded-[10px] border-[1.5px] font-baloo font-bold text-xs sm:text-sm p-1 text-center leading-tight break-words cursor-pointer transition-all duration-150 flex items-center justify-center ${
                     isActive
                       ? "bg-pine border-pine text-cream-2 shadow-[0_4px_0_-1px_rgba(27,58,43,0.3)]"
-                      : "text-pine"
+                      : "bg-white border-[#d8cfa9] text-pine hover:border-gold"
                   }`}
                 >
                   {t.label}
