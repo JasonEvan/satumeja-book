@@ -3,31 +3,13 @@
 import { useState, useMemo, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
 
-import { StoreSettingsData } from "@/lib/booking-service";
-
-export interface RateItem {
-  minHour: number;
-  maxHour: number;
-  rate: number;
-}
-
-export interface RatesData {
-  weekday: RateItem[];
-  weekend: RateItem[];
-}
-
-export interface TableItem {
-  id: number | string;
-  label: string;
-  name: string;
-  outletId?: string;
-}
-
-export interface VoucherItem {
-  type: "percent" | "flat";
-  value: number;
-  label: string;
-}
+import { calculateBookingTotals } from "@/lib/booking-pricing";
+import type {
+  RatesData,
+  StoreSettingsData,
+  TableItem,
+  VoucherItem,
+} from "@/lib/booking-types";
 
 const OPEN_HOUR = 10; // 10:00
 const CLOSE_HOUR = 23; // 23:00
@@ -43,25 +25,6 @@ function fmtHour(h: number) {
 
 function formatRp(n: number) {
   return "Rp" + Math.round(n).toLocaleString("id-ID");
-}
-
-function isWeekend(dateObj: Date) {
-  const day = dateObj.getDay(); // 0 Sun, 5 Fri, 6 Sat
-  return day === 0 || day === 5 || day === 6;
-}
-
-function getRatePerHour(
-  totalHours: number,
-  dateObj: Date,
-  activeRates: RatesData,
-) {
-  const tiers = isWeekend(dateObj) ? activeRates.weekend : activeRates.weekday;
-  for (const tier of tiers) {
-    if (totalHours >= tier.minHour && totalHours <= tier.maxHour) {
-      return tier.rate;
-    }
-  }
-  return tiers[tiers.length - 1]?.rate || 0;
 }
 
 function getTodayWIB() {
@@ -88,6 +51,9 @@ export default function BookingForm({
   initialVouchers,
   initialStoreSettings,
 }: BookingFormProps) {
+  const [isSnapReady, setIsSnapReady] = useState(
+    () => typeof window !== "undefined" && !!window.snap,
+  );
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [date, setDate] = useState("");
@@ -113,9 +79,47 @@ export default function BookingForm({
   const [consent, setConsent] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState<string | null>(null);
   const [bookingError, setBookingError] = useState<string | null>(null);
+  const [bookingPending, setBookingPending] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [reservedHours, setReservedHours] = useState<Set<number>>(new Set());
+
+  useEffect(() => {
+    const snapUrl = process.env.NEXT_PUBLIC_MIDTRANS_SNAP_URL;
+    const clientKey = process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY;
+
+    if (!snapUrl || !clientKey) {
+      return;
+    }
+
+    const existingScript = document.querySelector<HTMLScriptElement>(
+      'script[data-midtrans-snap="true"]',
+    );
+
+    if (existingScript) {
+      if (!window.snap) {
+        existingScript.addEventListener("load", () => setIsSnapReady(true), {
+          once: true,
+        });
+      }
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = snapUrl;
+    script.dataset.clientKey = clientKey;
+    script.dataset.midtransSnap = "true";
+    script.async = true;
+    script.onload = () => setIsSnapReady(true);
+    script.onerror = () =>
+      setBookingError("Gagal memuat Midtrans Snap. Silakan refresh halaman.");
+    document.body.appendChild(script);
+
+    return () => {
+      script.onload = null;
+      script.onerror = null;
+    };
+  }, []);
 
   // Fetch reserved time slots asynchronously from Supabase when selectedTable or date changes
   useEffect(() => {
@@ -134,19 +138,59 @@ export default function BookingForm({
         const supabase = createClient();
         const dayStartIso = `${date}T00:00:00+07:00`;
         const dayEndIso = `${date}T23:59:59+07:00`;
+        type RentalSlotRow = {
+          started_at?: string | null;
+          estimated_ended_at?: string | null;
+          status?: string | null;
+          payment_expired_at?: string | null;
+        };
 
-        const { data: dbRentals } = await supabase
+        let { data: dbRentals, error } = (await supabase
           .from("rentals")
-          .select("started_at, estimated_ended_at, status")
+          .select("started_at, estimated_ended_at, status, payment_expired_at")
           .eq("asset_id", selectedItem.id)
-          .in("status", ["active", "reserved"])
+          .in("status", ["active", "reserved", "pending_payment"])
           .gte("started_at", dayStartIso)
-          .lte("started_at", dayEndIso);
+          .lte("started_at", dayEndIso)) as {
+          data: RentalSlotRow[] | null;
+          error: unknown;
+        };
 
-        if (isMounted && dbRentals) {
+        if (error) {
+          const fallback = await supabase
+            .from("rentals")
+            .select("started_at, estimated_ended_at, status, created_at")
+            .eq("asset_id", selectedItem.id)
+            .in("status", ["active", "reserved", "pending_payment"])
+            .gte("started_at", dayStartIso)
+            .lte("started_at", dayEndIso);
+
+          dbRentals = (fallback.data || []).map((row) => ({
+            started_at: row.started_at,
+            estimated_ended_at: row.estimated_ended_at,
+            status: row.status,
+            payment_expired_at:
+              row.status === "pending_payment" && row.created_at
+                ? new Date(
+                    new Date(row.created_at).getTime() + 15 * 60 * 1000,
+                  ).toISOString()
+                : null,
+          }));
+          error = fallback.error;
+        }
+
+        if (isMounted && dbRentals && !error) {
           const booked = new Set<number>();
+          const now = Date.now();
           dbRentals.forEach((r) => {
             if (!r.started_at || !r.estimated_ended_at) return;
+            if (
+              r.status === "pending_payment" &&
+              r.payment_expired_at &&
+              new Date(r.payment_expired_at).getTime() <= now
+            ) {
+              return;
+            }
 
             const startWib = new Date(
               new Date(r.started_at).toLocaleString("en-US", {
@@ -266,65 +310,18 @@ export default function BookingForm({
   const hasTime = startHour !== null && endHour !== null;
   const totalHours = hasTime ? endHour - startHour : 0;
 
-  const {
-    rate,
-    subtotal,
-    discount,
-    serviceChargeAmount,
-    taxAmount,
-    total,
-  } = useMemo(() => {
-    let rate = 0;
-    let subtotal = 0;
-    let discount = 0;
-    let serviceChargeAmount = 0;
-    let taxAmount = 0;
-    let total = 0;
-
-    if (totalHours > 0 && dateObj) {
-      rate = getRatePerHour(totalHours, dateObj, initialRates);
-      subtotal = rate * totalHours;
-
-      if (appliedVoucher) {
-        discount =
-          appliedVoucher.type === "percent"
-            ? subtotal * (appliedVoucher.value / 100)
-            : Math.min(appliedVoucher.value, subtotal);
-      }
-
-      const netSubtotal = Math.max(subtotal - discount, 0);
-
-      const servicePct = initialStoreSettings?.serviceChargePercentage || 0;
-      const taxPct = initialStoreSettings?.taxPercentage || 0;
-
-      if (servicePct > 0) {
-        serviceChargeAmount = Math.round(netSubtotal * (servicePct / 100));
-      }
-
-      if (taxPct > 0) {
-        taxAmount = Math.round(
-          (netSubtotal + serviceChargeAmount) * (taxPct / 100)
-        );
-      }
-
-      total = netSubtotal + serviceChargeAmount + taxAmount;
-    }
-
-    return {
-      rate,
-      subtotal,
-      discount,
-      serviceChargeAmount,
-      taxAmount,
-      total,
-    };
-  }, [
-    totalHours,
-    dateObj,
-    appliedVoucher,
-    initialRates,
-    initialStoreSettings,
-  ]);
+  const { rate, subtotal, discount, serviceChargeAmount, taxAmount, total } =
+    useMemo(
+      () =>
+        calculateBookingTotals({
+          totalHours,
+          dateObj,
+          activeRates: initialRates,
+          appliedVoucher,
+          storeSettings: initialStoreSettings,
+        }),
+      [totalHours, dateObj, appliedVoucher, initialRates, initialStoreSettings],
+    );
 
   const formattedDateStr = dateObj
     ? dateObj.toLocaleDateString("id-ID", {
@@ -347,9 +344,46 @@ export default function BookingForm({
     hasTime &&
     consent;
 
-  // ponytail: execute create_web_booking RPC function on Supabase
+  const pollBookingStatus = async (orderId: string) => {
+    for (let attempt = 0; attempt < 10; attempt += 1) {
+      const response = await fetch(
+        `/api/payment/verify-status?orderId=${encodeURIComponent(orderId)}`,
+        {
+          cache: "no-store",
+        },
+      );
+
+      if (response.ok) {
+        const payload = (await response.json()) as {
+          status?: string;
+        };
+
+        if (payload.status === "reserved") {
+          return "reserved";
+        }
+
+        if (
+          payload.status &&
+          ["payment_failed", "expired", "cancelled"].includes(payload.status)
+        ) {
+          return payload.status;
+        }
+      }
+
+      await new Promise((resolve) => window.setTimeout(resolve, 2000));
+    }
+
+    return "pending_payment";
+  };
+
   const handleSubmit = async () => {
-    if (!isFormValid || !selectedTable || !startHour || !endHour || !dateObj)
+    if (
+      !isFormValid ||
+      selectedTable === null ||
+      startHour === null ||
+      endHour === null ||
+      !dateObj
+    )
       return;
 
     const selectedItem = initialTables.find(
@@ -361,35 +395,87 @@ export default function BookingForm({
         ? selectedTable
         : `Meja ${selectedTable}`;
 
-    const startHourStr = String(startHour).padStart(2, "0");
-    const startedAtIso = `${date}T${startHourStr}:00:00+07:00`;
-    const durationMinutes = (endHour - startHour) * 60;
-
     setIsSubmitting(true);
     setBookingError(null);
     setBookingSuccess(null);
+    setBookingPending(null);
 
     try {
-      const supabase = createClient();
-      const { error: rpcError } = await supabase.rpc("create_web_booking", {
-        p_outlet_id: selectedItem?.outletId || null,
-        p_asset_id: selectedItem?.id || null,
-        p_customer_name: name.trim(),
-        p_customer_phone: phone.trim(),
-        p_started_at: startedAtIso,
-        p_duration_minutes: durationMinutes,
-        p_hourly_rate: rate,
-        p_voucher_code: appliedVoucher?.code || null,
+      if (!window.snap || !isSnapReady) {
+        throw new Error("Midtrans Snap belum siap. Silakan coba lagi.");
+      }
+
+      const response = await fetch("/api/payment/create-transaction", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: name.trim(),
+          phone: phone.trim(),
+          assetId: String(selectedItem?.id || ""),
+          date,
+          startHour,
+          endHour,
+          voucherCode: appliedVoucher?.code || null,
+        }),
       });
 
-      if (rpcError) {
-        setBookingError(rpcError.message || "Gagal membuat booking.");
-      } else {
-        const detail = `${name.trim()}, ${tableName} · ${formattedDateStr} · ${formattedTimeStr} · Total ${formatRp(
-          total,
-        )}`;
-        setBookingSuccess(detail);
+      const payload = (await response.json()) as {
+        error?: string;
+        snapToken?: string;
+        orderId?: string;
+        paymentExpiresAt?: string | null;
+      };
+
+      if (!response.ok || !payload.snapToken || !payload.orderId) {
+        throw new Error(payload.error || "Gagal membuat transaksi pembayaran.");
       }
+
+      const pendingText = payload.paymentExpiresAt
+        ? `Menunggu pembayaran sampai ${new Date(
+            payload.paymentExpiresAt,
+          ).toLocaleString("id-ID", {
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          })} WIB.`
+        : "Menunggu pembayaran Anda di Midtrans.";
+
+      setBookingPending(pendingText);
+
+      window.snap.pay(payload.snapToken, {
+        onSuccess: async () => {
+          const finalStatus = await pollBookingStatus(payload.orderId!);
+
+          if (finalStatus === "reserved") {
+            const detail = `${name.trim()}, ${tableName} · ${formattedDateStr} · ${formattedTimeStr} · Total ${formatRp(
+              total,
+            )}`;
+            setBookingPending(null);
+            setBookingSuccess(detail);
+            return;
+          }
+
+          setBookingPending(
+            "Pembayaran diterima, tetapi konfirmasi booking masih menunggu sinkronisasi webhook.",
+          );
+        },
+        onPending: () => {
+          setBookingPending(pendingText);
+        },
+        onError: () => {
+          setBookingPending(null);
+          setBookingError("Pembayaran gagal diproses. Silakan coba lagi.");
+        },
+        onClose: () => {
+          setBookingPending(
+            "Pembayaran belum selesai. Anda bisa melanjutkan pembayaran dari sesi Midtrans yang sama selama belum kedaluwarsa.",
+          );
+        },
+      });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Terjadi kesalahan.";
       setBookingError(msg);
@@ -401,7 +487,10 @@ export default function BookingForm({
 
   const getSelectedTableLabel = () => {
     if (!selectedTable) return "—";
-    return String(selectedTable);
+    return (
+      initialTables.find((item) => item.id === selectedTable || item.name === selectedTable)
+        ?.label || String(selectedTable)
+    );
   };
 
   return (
@@ -421,6 +510,14 @@ export default function BookingForm({
             <b className="font-baloo text-base">Booking Gagal</b>
             <br />
             <span>{bookingError}</span>
+          </div>
+        )}
+
+        {bookingPending && (
+          <div className="bg-gold text-pine rounded-2xl p-4 mb-4 text-[13.5px] leading-normal shadow-sm">
+            <b className="font-baloo text-base">Menunggu Pembayaran</b>
+            <br />
+            <span>{bookingPending}</span>
           </div>
         )}
 
@@ -518,7 +615,7 @@ export default function BookingForm({
                   key={t.id}
                   type="button"
                   disabled={!isDateSelected}
-                  onClick={() => setSelectedTable(t.name)}
+                  onClick={() => setSelectedTable(t.id)}
                   className={btnClass}
                   title={
                     !isDateSelected
@@ -772,7 +869,7 @@ export default function BookingForm({
           onClick={handleSubmit}
           className="w-full bg-gold text-pine border-none rounded-2xl py-3.5 px-4 font-baloo font-bold text-xl tracking-wide cursor-pointer mt-2 transition-all duration-150 shadow-[0_4px_0_0_#a9843a] hover:enabled:bg-gold-soft active:enabled:translate-y-0.5 active:enabled:shadow-[0_2px_0_0_#a9843a] disabled:opacity-45 disabled:cursor-not-allowed disabled:shadow-none"
         >
-          {isSubmitting ? "Memproses..." : "Konfirmasi Booking"}
+          {isSubmitting ? "Memproses..." : "Bayar & Konfirmasi Booking"}
         </button>
 
         <p className="text-center text-[11.5px] text-muted mt-4">

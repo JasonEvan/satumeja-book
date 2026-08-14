@@ -1,6 +1,11 @@
 // ponytail: server-side Supabase data fetching queries for SSR
 import { createClient } from "@/utils/supabase/server";
-import { TableItem, RatesData, VoucherItem } from "@/app/booking-form";
+import type {
+  RatesData,
+  StoreSettingsData,
+  TableItem,
+  VoucherItem,
+} from "@/lib/booking-types";
 
 const DEFAULT_RATES: RatesData = {
   weekday: [
@@ -147,18 +152,15 @@ export async function getVouchers(): Promise<Record<string, VoucherItem>> {
   return {};
 }
 
-export interface StoreSettingsData {
-  taxPercentage: number;
-  serviceChargePercentage: number;
-}
-
 export async function getStoreSettings(): Promise<StoreSettingsData> {
   try {
     const supabase = await createClient();
     // ponytail: fetch store_settings for store_name 'Satu Meja'
     const { data: specificData } = await supabase
       .from("store_settings")
-      .select("tax_percentage, service_charge_percentage, store_name")
+      .select(
+        "tax_percentage, service_charge_percentage, store_name, weekend_days",
+      )
       .ilike("store_name", "%Satu Meja%")
       .limit(1)
       .maybeSingle();
@@ -168,7 +170,7 @@ export async function getStoreSettings(): Promise<StoreSettingsData> {
       (
         await supabase
           .from("store_settings")
-          .select("tax_percentage, service_charge_percentage")
+          .select("tax_percentage, service_charge_percentage, weekend_days")
           .limit(1)
           .maybeSingle()
       ).data;
@@ -177,6 +179,9 @@ export async function getStoreSettings(): Promise<StoreSettingsData> {
       return {
         taxPercentage: Number(data.tax_percentage || 0),
         serviceChargePercentage: Number(data.service_charge_percentage || 0),
+        weekendDays: Array.isArray(data.weekend_days)
+          ? data.weekend_days.map((value: unknown) => Number(value))
+          : [0, 5, 6],
       };
     }
   } catch {
@@ -186,5 +191,6 @@ export async function getStoreSettings(): Promise<StoreSettingsData> {
   return {
     taxPercentage: 0,
     serviceChargePercentage: 0,
+    weekendDays: [0, 5, 6],
   };
 }
