@@ -235,27 +235,31 @@ export default function BookingForm({
     return reservedHours;
   }, [selectedTable, date, reservedHours]);
 
+  const isRangeAvailable = (fromHour: number, toHour: number) => {
+    for (let hour = fromHour; hour < toHour; hour += 1) {
+      if (activeReservedHours.has(hour)) {
+        return false;
+      }
+    }
+
+    return true;
+  };
+
   const handleTimeClick = (h: number) => {
-    if (!selectedTable || activeReservedHours.has(h)) return;
+    if (!selectedTable) return;
 
     if (startHour === null || (startHour !== null && endHour !== null)) {
+      if (activeReservedHours.has(h)) return;
       setStartHour(h);
       setEndHour(null);
     } else {
       if (h <= startHour) {
+        if (activeReservedHours.has(h)) return;
         setStartHour(h);
         setEndHour(null);
       } else {
-        // Prevent selecting across an existing reservation
-        let hasConflict = false;
-        for (let k = startHour; k < h; k++) {
-          if (activeReservedHours.has(k)) {
-            hasConflict = true;
-            break;
-          }
-        }
-
-        if (hasConflict) {
+        if (!isRangeAvailable(startHour, h)) {
+          if (activeReservedHours.has(h)) return;
           setStartHour(h);
           setEndHour(null);
         } else {
@@ -645,7 +649,6 @@ export default function BookingForm({
             {HOURS.map((h) => {
               const isTableSelected = selectedTable !== null;
               const isReserved = activeReservedHours.has(h);
-              const isDisabled = !isTableSelected || isReserved;
               const isStart = startHour === h;
               const isEnd = endHour === h;
               const inRange =
@@ -653,6 +656,14 @@ export default function BookingForm({
                 endHour !== null &&
                 h > startHour &&
                 h < endHour;
+              const canUseAsEndBoundary =
+                isTableSelected &&
+                startHour !== null &&
+                endHour === null &&
+                h > startHour &&
+                isRangeAvailable(startHour, h);
+              const isDisabled =
+                !isTableSelected || (isReserved && !canUseAsEndBoundary);
 
               let btnClass =
                 "py-2 px-1 rounded-xl border-[1.5px] border-[#d8cfa9] font-inter font-semibold text-[12.5px] text-center transition-all duration-150";
@@ -671,6 +682,8 @@ export default function BookingForm({
 
               const tooltip = !isTableSelected
                 ? "Silakan pilih meja terlebih dahulu"
+                : canUseAsEndBoundary
+                  ? "Jam ini bisa dipilih sebagai batas akhir booking"
                 : isReserved
                   ? "Meja/Unit ini sudah dipesan pada jam ini"
                   : undefined;
