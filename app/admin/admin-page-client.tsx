@@ -3,16 +3,253 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+import type { AdminBookingItem } from "@/lib/admin-bookings";
+
 interface AdminPageClientProps {
   authenticated: boolean;
   initialPaymentGatewayEnabled: boolean;
   hasAdminPasswordConfigured: boolean;
+  bookings: AdminBookingItem[];
+}
+
+function formatDateTime(value: string | null) {
+  if (!value) {
+    return "—";
+  }
+
+  return new Date(value).toLocaleString("id-ID", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function formatCurrency(value: number | null) {
+  if (typeof value !== "number") {
+    return "—";
+  }
+
+  return `Rp${Math.round(value).toLocaleString("id-ID")}`;
+}
+
+const shellStyle: React.CSSProperties = {
+  width: "100%",
+  maxWidth: "560px",
+};
+
+const cardStyle: React.CSSProperties = {
+  backgroundColor: "#fbf7ec",
+  border: "2px solid #1b3a2b",
+  borderRadius: "24px",
+  padding: "24px",
+  boxSizing: "border-box",
+  boxShadow: "0 10px 28px -22px rgba(27,58,43,0.45)",
+};
+
+const sectionStyle: React.CSSProperties = {
+  backgroundColor: "#ffffff",
+  border: "1px solid #c9a24b",
+  borderRadius: "22px",
+  padding: "20px",
+  boxSizing: "border-box",
+};
+
+const inputStyle: React.CSSProperties = {
+  width: "100%",
+  backgroundColor: "#ffffff",
+  border: "1.5px solid #d8cfa9",
+  borderRadius: "12px",
+  padding: "12px 14px",
+  fontSize: "14px",
+  lineHeight: "20px",
+  color: "#1e2620",
+  boxSizing: "border-box",
+  outline: "none",
+  minHeight: "44px",
+  WebkitAppearance: "none",
+  appearance: "none",
+};
+
+const primaryButtonStyle: React.CSSProperties = {
+  width: "100%",
+  marginTop: "16px",
+  backgroundColor: "#1b3a2b",
+  color: "#fbf7ec",
+  border: "0",
+  borderRadius: "16px",
+  padding: "14px 16px",
+  fontFamily: "var(--font-baloo)",
+  fontWeight: 700,
+  fontSize: "18px",
+  lineHeight: "22px",
+  cursor: "pointer",
+  WebkitAppearance: "none",
+  appearance: "none",
+};
+
+const ghostButtonStyle: React.CSSProperties = {
+  backgroundColor: "#ffffff",
+  border: "1px solid #d8cfa9",
+  color: "#1b3a2b",
+  borderRadius: "12px",
+  padding: "10px 14px",
+  fontSize: "14px",
+  fontWeight: 600,
+  cursor: "pointer",
+  WebkitAppearance: "none",
+  appearance: "none",
+};
+
+const alertErrorStyle: React.CSSProperties = {
+  backgroundColor: "#8c2f2f",
+  color: "#fbf7ec",
+  borderRadius: "16px",
+  padding: "14px 16px",
+  fontSize: "14px",
+  lineHeight: "20px",
+  marginBottom: "16px",
+};
+
+const alertOkStyle: React.CSSProperties = {
+  backgroundColor: "#1b3a2b",
+  color: "#fbf7ec",
+  borderRadius: "16px",
+  padding: "14px 16px",
+  fontSize: "14px",
+  lineHeight: "20px",
+  marginBottom: "16px",
+};
+
+function renderToggle(
+  paymentGatewayEnabled: boolean,
+  isSaving: boolean,
+  onClick: () => void,
+) {
+  return (
+    <div
+      style={{
+        border: "1px solid #d8cfa9",
+        borderRadius: "20px",
+        backgroundColor: "#fffdf7",
+        padding: "16px",
+        boxSizing: "border-box",
+      }}
+    >
+      <div style={{ marginBottom: "12px" }}>
+        <div
+          style={{
+            fontSize: "11px",
+            lineHeight: "16px",
+            letterSpacing: "0.12em",
+            textTransform: "uppercase",
+            color: "#5c6b60",
+            fontWeight: 700,
+          }}
+        >
+          Payment Mode
+        </div>
+        <div
+          style={{
+            marginTop: "4px",
+            fontFamily: "var(--font-baloo)",
+            fontSize: "18px",
+            lineHeight: "20px",
+            color: "#1b3a2b",
+            fontWeight: 700,
+          }}
+        >
+          {paymentGatewayEnabled ? "Midtrans Active" : "Manual Proof"}
+        </div>
+        <div
+          style={{
+            marginTop: "8px",
+            fontSize: "13px",
+            lineHeight: "19px",
+            color: "#5c6b60",
+          }}
+        >
+          {paymentGatewayEnabled
+            ? "Customer pays instantly with gateway checkout."
+            : "Customer uploads transfer proof for admin review."}
+        </div>
+      </div>
+
+      <button
+        type="button"
+        role="switch"
+        aria-checked={paymentGatewayEnabled}
+        aria-label="Gunakan Payment Gateway"
+        disabled={isSaving}
+        onClick={onClick}
+        style={{
+          display: "inline-block",
+          width: "92px",
+          height: "52px",
+          borderRadius: "999px",
+          border: `2px solid ${paymentGatewayEnabled ? "#1b3a2b" : "#bda96e"}`,
+          backgroundColor: paymentGatewayEnabled ? "#2c5a44" : "#efe1b8",
+          padding: "0",
+          position: "relative",
+          cursor: isSaving ? "not-allowed" : "pointer",
+          opacity: isSaving ? 0.7 : 1,
+          WebkitAppearance: "none",
+          appearance: "none",
+        }}
+      >
+        <span
+          style={{
+            position: "absolute",
+            top: "50%",
+            left: paymentGatewayEnabled ? "47px" : "7px",
+            width: "36px",
+            height: "36px",
+            borderRadius: "999px",
+            transform: "translateY(-50%)",
+            backgroundColor: paymentGatewayEnabled ? "#fbf7ec" : "#1b3a2b",
+          }}
+        />
+        <span
+          style={{
+            position: "absolute",
+            left: "12px",
+            top: "50%",
+            transform: "translateY(-50%)",
+            fontSize: "10px",
+            lineHeight: "12px",
+            fontWeight: 700,
+            letterSpacing: "0.12em",
+            color: paymentGatewayEnabled ? "rgba(251,247,236,0.75)" : "#1b3a2b",
+          }}
+        >
+          OFF
+        </span>
+        <span
+          style={{
+            position: "absolute",
+            right: "12px",
+            top: "50%",
+            transform: "translateY(-50%)",
+            fontSize: "10px",
+            lineHeight: "12px",
+            fontWeight: 700,
+            letterSpacing: "0.12em",
+            color: paymentGatewayEnabled ? "#fbf7ec" : "rgba(27,58,43,0.65)",
+          }}
+        >
+          ON
+        </span>
+      </button>
+    </div>
+  );
 }
 
 export default function AdminPageClient({
   authenticated,
   initialPaymentGatewayEnabled,
   hasAdminPasswordConfigured,
+  bookings,
 }: AdminPageClientProps) {
   const router = useRouter();
   const [password, setPassword] = useState("");
@@ -32,9 +269,7 @@ export default function AdminPageClient({
     try {
       const response = await fetch("/api/admin/login", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password }),
       });
 
@@ -65,12 +300,8 @@ export default function AdminPageClient({
     try {
       const response = await fetch("/api/admin/payment-settings", {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          paymentGatewayEnabled: nextValue,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ paymentGatewayEnabled: nextValue }),
       });
 
       const payload = (await response.json()) as {
@@ -102,10 +333,26 @@ export default function AdminPageClient({
 
   if (!hasAdminPasswordConfigured) {
     return (
-      <section className="w-full max-w-[560px]">
-        <div className="bg-red text-cream-2 rounded-3xl p-6">
-          <h1 className="font-baloo text-2xl m-0 mb-2">Admin Payment</h1>
-          <p className="m-0 text-sm leading-6">
+      <section style={shellStyle}>
+        <div
+          style={{
+            backgroundColor: "#8c2f2f",
+            color: "#fbf7ec",
+            borderRadius: "24px",
+            padding: "24px",
+          }}
+        >
+          <h1
+            style={{
+              margin: "0 0 8px",
+              fontFamily: "var(--font-baloo)",
+              fontSize: "28px",
+              lineHeight: "30px",
+            }}
+          >
+            Admin Payment
+          </h1>
+          <p style={{ margin: 0, fontSize: "14px", lineHeight: "21px" }}>
             `ADMIN_ACCESS_PASSWORD` belum di-set, jadi halaman admin belum bisa
             dipakai.
           </p>
@@ -116,25 +363,44 @@ export default function AdminPageClient({
 
   if (!authenticated) {
     return (
-      <section className="w-full max-w-[560px]">
-        <div className="bg-cream-2 border-2 border-pine rounded-3xl p-6 shadow-[0_10px_0_-4px_rgba(27,58,43,0.08),0_18px_40px_-20px_rgba(27,58,43,0.35)]">
-          <h1 className="font-baloo text-[30px] text-pine m-0 mb-2">
+      <section style={shellStyle}>
+        <div style={cardStyle}>
+          <h1
+            style={{
+              margin: "0 0 8px",
+              fontFamily: "var(--font-baloo)",
+              fontSize: "30px",
+              lineHeight: "32px",
+              color: "#1b3a2b",
+            }}
+          >
             Admin Payment
           </h1>
-          <p className="text-sm text-muted mt-0 mb-5 leading-6">
+          <p
+            style={{
+              margin: "0 0 20px",
+              fontSize: "14px",
+              lineHeight: "21px",
+              color: "#5c6b60",
+            }}
+          >
             Login untuk mengatur apakah booking memakai Midtrans atau upload
             bukti transfer manual.
           </p>
 
-          {error && (
-            <div className="bg-red text-cream-2 rounded-2xl p-4 mb-4 text-sm">
-              {error}
-            </div>
-          )}
+          {error ? <div style={alertErrorStyle}>{error}</div> : null}
 
           <label
             htmlFor="admin-password"
-            className="block font-baloo font-semibold text-[13.5px] text-pine mb-1.5 tracking-wide"
+            style={{
+              display: "block",
+              marginBottom: "6px",
+              fontFamily: "var(--font-baloo)",
+              fontWeight: 700,
+              fontSize: "14px",
+              lineHeight: "18px",
+              color: "#1b3a2b",
+            }}
           >
             Password Admin
           </label>
@@ -143,14 +409,18 @@ export default function AdminPageClient({
             type="password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            className="w-full bg-white border-[1.5px] border-[#d8cfa9] rounded-xl px-3.5 py-2.5 text-[14px] text-ink outline-none transition-all duration-150 focus:border-pine focus:ring-2 focus:ring-pine/15"
+            style={inputStyle}
           />
 
           <button
             type="button"
             onClick={handleLogin}
             disabled={!password.trim() || isLoggingIn}
-            className="w-full mt-4 bg-pine text-cream-2 border-none rounded-2xl py-3 px-4 font-baloo font-bold text-lg cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed"
+            style={{
+              ...primaryButtonStyle,
+              opacity: !password.trim() || isLoggingIn ? 0.45 : 1,
+              cursor: !password.trim() || isLoggingIn ? "not-allowed" : "pointer",
+            }}
           >
             {isLoggingIn ? "Memproses..." : "Masuk"}
           </button>
@@ -160,126 +430,336 @@ export default function AdminPageClient({
   }
 
   return (
-    <section className="w-full max-w-[560px]">
-      <div className="bg-cream-2 border-2 border-pine rounded-3xl p-6 shadow-[0_10px_0_-4px_rgba(27,58,43,0.08),0_18px_40px_-20px_rgba(27,58,43,0.35)]">
-        <div className="flex items-start justify-between gap-4 mb-5">
-          <div>
-            <h1 className="font-baloo text-[30px] text-pine m-0">
-              Admin Payment
-            </h1>
-            <p className="text-sm text-muted mt-1 mb-0 leading-6">
-              Ubah mode checkout tanpa deploy ulang.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="bg-white border border-[#d8cfa9] text-pine rounded-xl px-3 py-2 text-sm font-semibold cursor-pointer"
+    <section style={shellStyle}>
+      <div style={cardStyle}>
+        <div
+          style={{
+            marginBottom: "20px",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "12px",
+            }}
           >
-            Logout
-          </button>
+            <div>
+              <h1
+                style={{
+                  margin: 0,
+                  fontFamily: "var(--font-baloo)",
+                  fontSize: "30px",
+                  lineHeight: "32px",
+                  color: "#1b3a2b",
+                }}
+              >
+                Admin Payment
+              </h1>
+              <p
+                style={{
+                  margin: "6px 0 0",
+                  fontSize: "14px",
+                  lineHeight: "21px",
+                  color: "#5c6b60",
+                }}
+              >
+                Ubah mode checkout tanpa deploy ulang.
+              </p>
+            </div>
+            <div>
+              <button
+                type="button"
+                onClick={handleLogout}
+                style={ghostButtonStyle}
+              >
+                Logout
+              </button>
+            </div>
+          </div>
         </div>
 
-        {error && (
-          <div className="bg-red text-cream-2 rounded-2xl p-4 mb-4 text-sm">
-            {error}
-          </div>
-        )}
+        {error ? <div style={alertErrorStyle}>{error}</div> : null}
+        {message ? <div style={alertOkStyle}>{message}</div> : null}
 
-        {message && (
-          <div className="bg-pine text-cream-2 rounded-2xl p-4 mb-4 text-sm">
-            {message}
-          </div>
-        )}
+        <div style={sectionStyle}>
+          <p
+            style={{
+              margin: 0,
+              fontFamily: "var(--font-baloo)",
+              fontSize: "22px",
+              lineHeight: "24px",
+              color: "#1b3a2b",
+            }}
+          >
+            Gunakan Payment Gateway
+          </p>
+          <p
+            style={{
+              margin: "10px 0 16px",
+              fontSize: "14px",
+              lineHeight: "21px",
+              color: "#5c6b60",
+            }}
+          >
+            Saat aktif, customer bayar lewat Midtrans. Saat nonaktif, customer
+            wajib upload bukti transfer dan booking langsung masuk ke status
+            reservasi.
+          </p>
 
-        <div className="rounded-3xl border border-dashed border-gold bg-white p-5">
-          <div className="mb-4">
-            <p className="font-baloo text-xl text-pine m-0">
-              Gunakan Payment Gateway
-            </p>
-            <p className="text-sm text-muted mt-2 mb-0 leading-6">
-              Saat aktif, customer bayar lewat Midtrans. Saat nonaktif,
-              customer wajib upload bukti transfer dan booking langsung masuk
-              ke status reservasi.
-            </p>
-          </div>
+          {renderToggle(paymentGatewayEnabled, isSaving, () =>
+            handleSave(!paymentGatewayEnabled),
+          )}
 
-          <div className="flex justify-start sm:justify-end">
-            <button
-              type="button"
-              role="switch"
-              aria-checked={paymentGatewayEnabled}
-              aria-label="Gunakan Payment Gateway"
-              disabled={isSaving}
-              onClick={() => handleSave(!paymentGatewayEnabled)}
-              className={`group relative shrink-0 overflow-hidden rounded-[26px] border px-4 py-3 text-left transition-all duration-300 sm:min-w-[250px] ${
-                paymentGatewayEnabled
-                  ? "border-pine bg-[linear-gradient(135deg,#1b3a2b_0%,#295540_55%,#3d7458_100%)] text-cream-2 shadow-[0_14px_30px_-18px_rgba(27,58,43,0.8)]"
-                  : "border-[#cdbf96] bg-[linear-gradient(135deg,#fffaf0_0%,#f1e4bf_58%,#dccb9d_100%)] text-pine shadow-[0_14px_26px_-20px_rgba(122,96,35,0.55)]"
-              } ${isSaving ? "cursor-not-allowed opacity-70" : "cursor-pointer hover:-translate-y-0.5 hover:shadow-[0_18px_34px_-18px_rgba(27,58,43,0.45)]"}`}
-            >
-              <span
-                className={`pointer-events-none absolute inset-y-0 ${
-                  paymentGatewayEnabled ? "right-0" : "left-0"
-                } w-24 opacity-70 blur-2xl transition-all duration-300 ${
-                  paymentGatewayEnabled ? "bg-[#8ec6aa]/30" : "bg-white/60"
-                }`}
-              />
-              <span className="relative flex items-center justify-between gap-4">
-                <span className="min-w-0">
-                  <span className="block text-[11px] font-semibold uppercase tracking-[0.14em] opacity-80">
-                    Payment Mode
-                  </span>
-                  <span className="mt-1 block font-baloo text-lg leading-none">
-                    {paymentGatewayEnabled ? "Midtrans Active" : "Manual Proof"}
-                  </span>
-                  <span className="mt-1.5 block text-xs leading-5 opacity-85">
-                    {paymentGatewayEnabled
-                      ? "Customer pays instantly with gateway checkout."
-                      : "Customer uploads transfer proof for admin review."}
-                  </span>
-                </span>
-
-                <span
-                  className={`relative flex h-14 w-[92px] shrink-0 items-center rounded-full border px-2 transition-all duration-300 ${
-                    paymentGatewayEnabled
-                      ? "border-white/25 bg-white/10"
-                      : "border-[#bda96e] bg-white/55"
-                  }`}
-                >
-                  <span
-                    className={`absolute top-1/2 h-10 w-10 -translate-y-1/2 rounded-full transition-all duration-300 ${
-                      paymentGatewayEnabled
-                        ? "left-[46px] bg-cream-2 shadow-[0_8px_18px_-8px_rgba(0,0,0,0.45)]"
-                        : "left-2 bg-pine shadow-[0_8px_18px_-8px_rgba(27,58,43,0.5)]"
-                    }`}
-                  />
-                  <span className="relative z-10 flex w-full justify-between px-1 text-[10px] font-bold uppercase tracking-[0.14em]">
-                    <span
-                      className={
-                        paymentGatewayEnabled ? "text-cream-2/85" : "text-pine"
-                      }
-                    >
-                      Off
-                    </span>
-                    <span
-                      className={
-                        paymentGatewayEnabled ? "text-cream-2" : "text-pine/70"
-                      }
-                    >
-                      On
-                    </span>
-                  </span>
-                </span>
-              </span>
-            </button>
-          </div>
-
-          <div className="mt-4 inline-flex rounded-full bg-[#fff7dd] px-3 py-1 text-sm font-semibold text-pine">
+          <div
+            style={{
+              display: "inline-block",
+              marginTop: "16px",
+              borderRadius: "999px",
+              backgroundColor: "#fff7dd",
+              padding: "6px 12px",
+              fontSize: "14px",
+              lineHeight: "18px",
+              fontWeight: 600,
+              color: "#1b3a2b",
+            }}
+          >
             {paymentGatewayEnabled
               ? "Status: Midtrans aktif"
               : "Status: Upload bukti transfer"}
           </div>
+        </div>
+
+        <div style={{ ...sectionStyle, marginTop: "20px" }}>
+          <h2
+            style={{
+              margin: 0,
+              fontFamily: "var(--font-baloo)",
+              fontSize: "22px",
+              lineHeight: "24px",
+              color: "#1b3a2b",
+            }}
+          >
+            Booking Manual
+          </h2>
+          <p
+            style={{
+              margin: "10px 0 16px",
+              fontSize: "14px",
+              lineHeight: "21px",
+              color: "#5c6b60",
+            }}
+          >
+            Daftar 20 booking manual terbaru beserta bukti pembayaran.
+          </p>
+
+          {bookings.length === 0 ? (
+            <div
+              style={{
+                border: "1px solid #e4dbc0",
+                borderRadius: "16px",
+                backgroundColor: "#fffdf7",
+                padding: "16px",
+                fontSize: "14px",
+                lineHeight: "21px",
+                color: "#5c6b60",
+              }}
+            >
+              Belum ada booking manual yang bisa ditampilkan.
+            </div>
+          ) : (
+            bookings.map((booking, index) => {
+              const hasImageProof =
+                !!booking.proofUrl &&
+                (booking.paymentProofMimeType?.startsWith("image/") ?? true);
+
+              return (
+                <article
+                  key={booking.id}
+                  style={{
+                    marginTop: index === 0 ? 0 : "16px",
+                    overflow: "hidden",
+                    border: "1px solid #dfd5b6",
+                    borderRadius: "20px",
+                    backgroundColor: "#fffdf6",
+                  }}
+                >
+                  <div
+                    style={{
+                      borderBottom: "1px solid #efe5c8",
+                      padding: "14px 16px",
+                    }}
+                  >
+                    <p
+                      style={{
+                        margin: 0,
+                        fontFamily: "var(--font-baloo)",
+                        fontSize: "20px",
+                        lineHeight: "22px",
+                        color: "#1b3a2b",
+                      }}
+                    >
+                      {booking.customerName || "Tanpa nama"}
+                    </p>
+                    <p
+                      style={{
+                        margin: "6px 0 0",
+                        fontSize: "12px",
+                        lineHeight: "18px",
+                        color: "#5c6b60",
+                      }}
+                    >
+                      {booking.customerPhone || "No phone"} ·{" "}
+                      {booking.assetName || "Asset tidak diketahui"}
+                    </p>
+                    <div style={{ marginTop: "10px" }}>
+                      <span
+                        style={{
+                          display: "inline-block",
+                          marginRight: "8px",
+                          marginBottom: "8px",
+                          borderRadius: "999px",
+                          backgroundColor: "#fff1c8",
+                          padding: "6px 12px",
+                          fontSize: "11px",
+                          lineHeight: "14px",
+                          fontWeight: 700,
+                          letterSpacing: "0.08em",
+                          textTransform: "uppercase",
+                          color: "#1b3a2b",
+                        }}
+                      >
+                        {booking.status || "unknown"}
+                      </span>
+                      <span
+                        style={{
+                          display: "inline-block",
+                          marginBottom: "8px",
+                          borderRadius: "999px",
+                          backgroundColor: "#1b3a2b",
+                          padding: "6px 12px",
+                          fontSize: "11px",
+                          lineHeight: "14px",
+                          fontWeight: 700,
+                          letterSpacing: "0.08em",
+                          textTransform: "uppercase",
+                          color: "#fbf7ec",
+                        }}
+                      >
+                        {booking.paymentVerificationStatus || "no proof"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div style={{ padding: "16px" }}>
+                    <div
+                      style={{
+                        marginBottom: "14px",
+                        fontSize: "14px",
+                        lineHeight: "21px",
+                        color: "#1e2620",
+                      }}
+                    >
+                      <div>
+                        <strong>Waktu Booking:</strong>{" "}
+                        {formatDateTime(booking.startedAt)}
+                      </div>
+                      <div>
+                        <strong>Selesai Estimasi:</strong>{" "}
+                        {formatDateTime(booking.estimatedEndedAt)}
+                      </div>
+                      <div>
+                        <strong>Total:</strong> {formatCurrency(booking.grossAmount)}
+                      </div>
+                      <div>
+                        <strong>Metode Bayar:</strong>{" "}
+                        {booking.paymentMethod || "—"}
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        border: "1px solid #eadfbc",
+                        borderRadius: "16px",
+                        backgroundColor: "#ffffff",
+                        padding: "12px",
+                      }}
+                    >
+                      <p
+                        style={{
+                          margin: 0,
+                          fontSize: "11px",
+                          lineHeight: "14px",
+                          fontWeight: 700,
+                          letterSpacing: "0.08em",
+                          textTransform: "uppercase",
+                          color: "#5c6b60",
+                        }}
+                      >
+                        Bukti Pembayaran
+                      </p>
+                      {hasImageProof ? (
+                        <a
+                          href={booking.proofUrl!}
+                          target="_blank"
+                          rel="noreferrer"
+                          style={{
+                            display: "block",
+                            marginTop: "10px",
+                            overflow: "hidden",
+                            border: "1px solid #e9deb9",
+                            borderRadius: "12px",
+                            backgroundColor: "#fffdf7",
+                          }}
+                        >
+                          <img
+                            src={booking.proofUrl!}
+                            alt={`Bukti pembayaran ${booking.customerName || booking.id}`}
+                            style={{
+                              display: "block",
+                              width: "100%",
+                              height: "auto",
+                            }}
+                          />
+                        </a>
+                      ) : booking.proofUrl ? (
+                        <a
+                          href={booking.proofUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          style={{
+                            display: "inline-block",
+                            marginTop: "10px",
+                            borderRadius: "12px",
+                            backgroundColor: "#1b3a2b",
+                            padding: "10px 14px",
+                            color: "#fbf7ec",
+                            fontSize: "14px",
+                            lineHeight: "18px",
+                            fontWeight: 600,
+                            textDecoration: "none",
+                          }}
+                        >
+                          Lihat Bukti
+                        </a>
+                      ) : (
+                        <p
+                          style={{
+                            margin: "10px 0 0",
+                            fontSize: "14px",
+                            lineHeight: "21px",
+                            color: "#5c6b60",
+                          }}
+                        >
+                          Belum ada bukti pembayaran.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </article>
+              );
+            })
+          )}
         </div>
       </div>
     </section>
