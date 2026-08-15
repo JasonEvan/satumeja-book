@@ -84,6 +84,11 @@ export default function BookingForm({
 
   const [reservedHours, setReservedHours] = useState<Set<number>>(new Set());
 
+  const resetTimeSelection = () => {
+    setStartHour(null);
+    setEndHour(null);
+  };
+
   useEffect(() => {
     const snapUrl = process.env.NEXT_PUBLIC_MIDTRANS_SNAP_URL;
     const clientKey = process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY;
@@ -311,7 +316,12 @@ export default function BookingForm({
     return date ? new Date(date + "T00:00:00") : null;
   }, [date]);
 
-  const hasTime = startHour !== null && endHour !== null;
+  const hasValidSelectedRange =
+    startHour !== null &&
+    endHour !== null &&
+    !activeReservedHours.has(startHour) &&
+    isRangeAvailable(startHour, endHour);
+  const hasTime = hasValidSelectedRange;
   const totalHours = hasTime ? endHour - startHour : 0;
 
   const { rate, subtotal, discount, serviceChargeAmount, taxAmount, total } =
@@ -575,7 +585,11 @@ export default function BookingForm({
             id="date"
             min={minDate}
             value={date}
-            onChange={(e) => setDate(e.target.value)}
+            onChange={(e) => {
+              setDate(e.target.value);
+              setReservedHours(new Set());
+              resetTimeSelection();
+            }}
             className="w-full bg-white border-[1.5px] border-[#d8cfa9] rounded-xl px-3.5 py-2.5 font-inter text-[14px] text-ink outline-none transition-all duration-150 appearance-none focus:border-pine focus:ring-2 focus:ring-pine/15 placeholder:text-[#b9b09a]"
           />
         </div>
@@ -619,7 +633,11 @@ export default function BookingForm({
                   key={t.id}
                   type="button"
                   disabled={!isDateSelected}
-                  onClick={() => setSelectedTable(t.id)}
+                  onClick={() => {
+                    setSelectedTable(t.id);
+                    setReservedHours(new Set());
+                    resetTimeSelection();
+                  }}
                   className={btnClass}
                   title={
                     !isDateSelected
