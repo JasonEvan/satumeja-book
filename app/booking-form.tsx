@@ -12,14 +12,6 @@ import type {
   VoucherItem,
 } from "@/lib/booking-types";
 
-const OPEN_HOUR = 10; // 10:00
-const CLOSE_HOUR = 23; // 23:00
-
-const HOURS: number[] = [];
-for (let h = OPEN_HOUR; h <= CLOSE_HOUR; h++) {
-  HOURS.push(h);
-}
-
 function fmtHour(h: number) {
   return String(h).padStart(2, "0") + ":00";
 }
@@ -41,6 +33,16 @@ export default function BookingForm({
   initialVouchers,
   initialStoreSettings,
 }: BookingFormProps) {
+  const openingHour = initialStoreSettings?.openingHour ?? 10;
+  const closingHour = initialStoreSettings?.closingHour ?? 23;
+  const hours = useMemo(() => {
+    const list: number[] = [];
+    for (let h = openingHour; h <= closingHour; h += 1) {
+      list.push(h);
+    }
+    return list;
+  }, [openingHour, closingHour]);
+
   const [isSnapReady, setIsSnapReady] = useState(
     () => typeof window !== "undefined" && !!window.snap,
   );
@@ -221,7 +223,7 @@ export default function BookingForm({
             }
 
             for (let h = startH; h < endH; h++) {
-              if (h >= OPEN_HOUR && h <= CLOSE_HOUR) {
+              if (h >= openingHour && h <= closingHour) {
                 booked.add(h);
               }
             }
@@ -239,7 +241,7 @@ export default function BookingForm({
     return () => {
       isMounted = false;
     };
-  }, [selectedTable, date, initialTables]);
+  }, [selectedTable, date, initialTables, openingHour, closingHour]);
 
   const activeReservedHours = useMemo(() => {
     if (!selectedTable || !date) return new Set<number>();
@@ -717,7 +719,7 @@ export default function BookingForm({
             className="grid grid-cols-4 max-[380px]:grid-cols-3 gap-2"
             id="timeGrid"
           >
-            {HOURS.map((h) => {
+                    {hours.map((h) => {
               const isTableSelected = selectedTable !== null;
               const isReserved = activeReservedHours.has(h);
               const isPast = isPastHour(h);

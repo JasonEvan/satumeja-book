@@ -17,6 +17,10 @@ export default async function Home() {
     ]);
 
   // Structured Data (JSON-LD) for LocalBusiness SEO
+  const openingHoursText = `${String(initialStoreSettings.openingHour).padStart(
+    2,
+    "0",
+  )}:00-${String(initialStoreSettings.closingHour).padStart(2, "0")}:00`;
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "LocalBusiness",
@@ -30,7 +34,7 @@ export default async function Home() {
       addressRegion: "Jawa Tengah",
       addressCountry: "ID",
     },
-    openingHours: "Mo-Su 10:00-23:00",
+    openingHours: `Mo-Su ${openingHoursText}`,
     url: "https://satumeja.com",
   };
 
@@ -66,7 +70,7 @@ export default async function Home() {
         </h2>
         <div>
           <span className="inline-block bg-pine text-cream-2 font-baloo font-semibold text-[13px] px-[18px] py-[6px] rounded-full tracking-[0.03em]">
-            Jl. Moch. Suyudi No. 71, Semarang · 10:00 – 23:00
+            Jl. Moch. Suyudi No. 71, Semarang · {openingHoursText.replace("-", " – ")}
           </span>
         </div>
       </section>

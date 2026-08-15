@@ -27,4 +27,6 @@ export interface StoreSettingsData {
   serviceChargePercentage: number;
   weekendDays: number[];
   paymentGatewayEnabled: boolean;
+  openingHour: number;
+  closingHour: number;
 }

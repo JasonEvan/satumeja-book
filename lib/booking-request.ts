@@ -42,6 +42,14 @@ interface StoreSettingsRow {
   service_charge_percentage: number | null;
   weekend_days: number[] | null;
   payment_gateway_enabled?: boolean | null;
+  opening_hour?: number | string | null;
+  closing_hour?: number | string | null;
+  open_hour?: number | string | null;
+  close_hour?: number | string | null;
+  opening_time?: string | null;
+  closing_time?: string | null;
+  open_time?: string | null;
+  close_time?: string | null;
 }
 
 interface VoucherRow {
@@ -107,6 +115,34 @@ function buildRatesData(
 }
 
 function buildStoreSettings(row: StoreSettingsRow | null): StoreSettingsData {
+  const parseHour = (value: unknown) => {
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return Math.max(0, Math.min(23, Math.trunc(value)));
+    }
+
+    if (typeof value !== "string") {
+      return null;
+    }
+
+    const trimmed = value.trim();
+    const match = trimmed.match(/^(\d{1,2})(?::\d{2})?(?::\d{2})?$/);
+    if (!match) {
+      return null;
+    }
+
+    const hour = Number(match[1]);
+    return hour >= 0 && hour <= 23 ? hour : null;
+  };
+
+  const openingHour =
+    parseHour(
+      row?.opening_hour ?? row?.open_hour ?? row?.opening_time ?? row?.open_time,
+    ) ?? 10;
+  const closingHour =
+    parseHour(
+      row?.closing_hour ?? row?.close_hour ?? row?.closing_time ?? row?.close_time,
+    ) ?? 23;
+
   return {
     taxPercentage: Number(row?.tax_percentage || 0),
     serviceChargePercentage: Number(row?.service_charge_percentage || 0),
@@ -114,6 +150,8 @@ function buildStoreSettings(row: StoreSettingsRow | null): StoreSettingsData {
       row?.weekend_days?.map((value) => Number(value)).filter(Number.isFinite) ||
       [0, 5, 6],
     paymentGatewayEnabled: getPaymentGatewayEnabled(row),
+    openingHour,
+    closingHour: closingHour >= openingHour ? closingHour : 23,
   };
 }
 
@@ -176,7 +214,7 @@ export async function fetchBookingQuote(
       supabase
         .from("store_settings")
         .select(
-          "tax_percentage, service_charge_percentage, weekend_days, payment_gateway_enabled",
+          "tax_percentage, service_charge_percentage, weekend_days, payment_gateway_enabled, opening_hour, closing_hour, open_hour, close_hour, opening_time, closing_time, open_time, close_time",
         )
         .eq("outlet_id", asset.outlet_id)
         .limit(1)
