@@ -69,7 +69,7 @@ export default function SyaratDanKetentuanPage() {
               </li>
               <li>
                 Jam operasional klub dimulai pukul <b>10.00 WIB</b> hingga{" "}
-                <b>23.00 WIB</b> setiap hari.
+                <b>22.00 WIB</b> setiap hari.
               </li>
               <li>
                 Durasi booking dihitung per slot jam (minimal 1 jam penuh).
@@ -95,11 +95,13 @@ export default function SyaratDanKetentuanPage() {
                 dan <b>Weekend / Libur Nasional (Jumat – Minggu)</b>.
               </li>
               <li>
-                Penggunaan kode voucher promo wajib dimasukkan sebelum mengonfirmasi
-                pesanan. Diskon tidak dapat disusulkan setelah transaksi.
+                Penggunaan kode voucher promo wajib dimasukkan sebelum
+                mengonfirmasi pesanan. Diskon tidak dapat disusulkan setelah
+                transaksi.
               </li>
               <li>
-                Total harga yang tertera pada ringkasan pesanan adalah nilai final.
+                Total harga yang tertera pada ringkasan pesanan adalah nilai
+                final.
               </li>
             </ul>
           </section>
@@ -114,16 +116,19 @@ export default function SyaratDanKetentuanPage() {
             </h2>
             <ul className="list-disc list-inside space-y-2 text-ink/90 pl-1">
               <li>
-                Waktu sewa dihitung tepat mengacu pada jam mulai yang dipilih saat booking.
+                Waktu sewa dihitung tepat mengacu pada jam mulai yang dipilih
+                saat booking.
               </li>
               <li>
-                Keterlambatan kedatangan pengunjung <b>tidak menambah</b> durasi waktu selesai.
+                Keterlambatan kedatangan pengunjung <b>tidak menambah</b> durasi
+                waktu selesai.
               </li>
               <li>
                 Toleransi keterlambatan tanpa konfirmasi adalah <b>15 menit</b>.
               </li>
               <li>
-                Jika tidak ada kabar setelah <b>30 menit</b> dari jam mulai, reservasi berhak dibatalkan (No-Show) tanpa pengembalian dana.
+                Jika tidak ada kabar setelah <b>30 menit</b> dari jam mulai,
+                reservasi berhak dibatalkan (No-Show) tanpa pengembalian dana.
               </li>
             </ul>
           </section>
@@ -138,10 +143,12 @@ export default function SyaratDanKetentuanPage() {
             </h2>
             <ul className="list-disc list-inside space-y-2 text-ink/90 pl-1">
               <li>
-                Perubahan jadwal (reschedule) dapat dilakukan maksimal <b>24 jam (H-1)</b> sebelum jam reservasi melalui tim admin.
+                Perubahan jadwal (reschedule) dapat dilakukan maksimal{" "}
+                <b>24 jam (H-1)</b> sebelum jam reservasi melalui tim admin.
               </li>
               <li>
-                Pembatalan pada hari H (kurang dari 24 jam) bersifat <i>non-refundable</i>.
+                Pembatalan pada hari H (kurang dari 24 jam) bersifat{" "}
+                <i>non-refundable</i>.
               </li>
             </ul>
           </section>
@@ -156,16 +163,20 @@ export default function SyaratDanKetentuanPage() {
             </h2>
             <ul className="list-disc list-inside space-y-2 text-ink/90 pl-1">
               <li>
-                Pengunjung wajib menjaga kebersihan meja, unit otomatis, dan set ubin mahjong.
+                Pengunjung wajib menjaga kebersihan meja, unit otomatis, dan set
+                ubin mahjong.
               </li>
               <li>
-                Kerusakan atau kehilangan ubin/peralatan akibat kelalaian atau kesengajaan akan dikenakan biaya ganti rugi.
+                Kerusakan atau kehilangan ubin/peralatan akibat kelalaian atau
+                kesengajaan akan dikenakan biaya ganti rugi.
               </li>
               <li>
-                <b>Dilarang keras</b> melakukan aktivitas perjudian dengan taruhan uang tunai di seluruh area klub.
+                <b>Dilarang keras</b> melakukan aktivitas perjudian dengan
+                taruhan uang tunai di seluruh area klub.
               </li>
               <li>
-                Dilarang membawa makanan &amp; minuman dari luar tanpa izin pengelola.
+                Dilarang membawa makanan &amp; minuman dari luar tanpa izin
+                pengelola.
               </li>
             </ul>
           </section>
@@ -174,7 +185,8 @@ export default function SyaratDanKetentuanPage() {
         {/* Footer Action Button */}
         <div className="mt-8 text-center pt-6 border-t border-dashed border-[#d8cfa9]">
           <p className="text-xs sm:text-sm text-muted mb-5">
-            Dengan mengonfirmasi booking, Anda dianggap telah membaca, memahami, dan menyetujui seluruh syarat &amp; ketentuan di atas.
+            Dengan mengonfirmasi booking, Anda dianggap telah membaca, memahami,
+            dan menyetujui seluruh syarat &amp; ketentuan di atas.
           </p>
           <div>
             <button
