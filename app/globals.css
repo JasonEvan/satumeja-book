@@ -68,3 +68,44 @@ button {
   box-sizing: border-box;
   overflow: visible;
 }
+
+.qris-card {
+  max-width: 380px;
+  margin: 0 auto 1rem;
+  overflow: hidden;
+  border: 2px solid #d8cfa9;
+  border-radius: 24px;
+  background: #fff;
+  padding: 0.625rem;
+  box-shadow: 0 12px 30px -22px rgba(27, 58, 43, 0.55);
+}
+
+.qris-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 1rem;
+  background: #fff7dd;
+}
+
+.qris-card__copy {
+  line-height: 1.35;
+}
+
+.qris-card__image-wrap {
+  max-width: 300px;
+  margin: 0 auto;
+  overflow: hidden;
+  border: 1px solid #ece2c0;
+  border-radius: 1rem;
+  background: #fffdf7;
+}
+
+.qris-card__image {
+  display: block;
+  width: 100%;
+  height: auto;
+}

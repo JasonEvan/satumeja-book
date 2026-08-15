@@ -944,6 +944,74 @@ export default function BookingForm({
               booking, upload bukti transfer di bawah ini.
             </div>
 
+            <div
+              className="mb-4"
+              style={{
+                width: "100%",
+                maxWidth: "340px",
+                margin: "0 auto 1rem",
+                border: "2px solid #d8cfa9",
+                borderRadius: "24px",
+                backgroundColor: "#ffffff",
+                padding: "10px",
+                boxShadow: "0 12px 30px -22px rgba(27, 58, 43, 0.55)",
+                boxSizing: "border-box",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: "12px",
+                  marginBottom: "12px",
+                  padding: "12px 14px",
+                  borderRadius: "16px",
+                  backgroundColor: "#fff7dd",
+                }}
+              >
+                <div>
+                  <p className="m-0 font-baloo text-[15px] text-pine">
+                    Scan QRIS untuk Pembayaran
+                  </p>
+                  <p
+                    className="m-0 mt-1 text-[11px] text-muted"
+                    style={{ lineHeight: 1.35 }}
+                  >
+                    Setelah transfer, lanjut upload bukti pembayaran agar
+                    booking bisa diverifikasi admin.
+                  </p>
+                </div>
+                <div className="shrink-0 rounded-full bg-pine px-3 py-1 text-[11px] font-bold uppercase tracking-[0.08em] text-cream-2">
+                  QRIS
+                </div>
+              </div>
+
+              <div
+                style={{
+                  width: "100%",
+                  maxWidth: "260px",
+                  margin: "0 auto",
+                  border: "1px solid #ece2c0",
+                  borderRadius: "16px",
+                  backgroundColor: "#fffdf7",
+                  overflow: "hidden",
+                }}
+              >
+                <img
+                  src="/QRIS.jpeg"
+                  alt="Kode QRIS untuk pembayaran booking"
+                  width={1127}
+                  height={1600}
+                  style={{
+                    display: "block",
+                    width: "100%",
+                    height: "auto",
+                  }}
+                />
+              </div>
+            </div>
+
             <label
               htmlFor="payment-proof"
               className="block font-baloo font-semibold text-[13.5px] text-pine mb-1.5 tracking-wide"
