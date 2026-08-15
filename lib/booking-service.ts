@@ -6,6 +6,10 @@ import type {
   TableItem,
   VoucherItem,
 } from "@/lib/booking-types";
+import {
+  DEFAULT_PAYMENT_GATEWAY_ENABLED,
+  getPaymentGatewayEnabled,
+} from "@/lib/payment-settings";
 
 const DEFAULT_RATES: RatesData = {
   weekday: [
@@ -159,7 +163,7 @@ export async function getStoreSettings(): Promise<StoreSettingsData> {
     const { data: specificData } = await supabase
       .from("store_settings")
       .select(
-        "tax_percentage, service_charge_percentage, store_name, weekend_days",
+        "tax_percentage, service_charge_percentage, store_name, weekend_days, payment_gateway_enabled",
       )
       .ilike("store_name", "%Satu Meja%")
       .limit(1)
@@ -170,7 +174,9 @@ export async function getStoreSettings(): Promise<StoreSettingsData> {
       (
         await supabase
           .from("store_settings")
-          .select("tax_percentage, service_charge_percentage, weekend_days")
+          .select(
+            "tax_percentage, service_charge_percentage, weekend_days, payment_gateway_enabled",
+          )
           .limit(1)
           .maybeSingle()
       ).data;
@@ -182,6 +188,7 @@ export async function getStoreSettings(): Promise<StoreSettingsData> {
         weekendDays: Array.isArray(data.weekend_days)
           ? data.weekend_days.map((value: unknown) => Number(value))
           : [0, 5, 6],
+        paymentGatewayEnabled: getPaymentGatewayEnabled(data),
       };
     }
   } catch {
@@ -192,5 +199,6 @@ export async function getStoreSettings(): Promise<StoreSettingsData> {
     taxPercentage: 0,
     serviceChargePercentage: 0,
     weekendDays: [0, 5, 6],
+    paymentGatewayEnabled: DEFAULT_PAYMENT_GATEWAY_ENABLED,
   };
 }

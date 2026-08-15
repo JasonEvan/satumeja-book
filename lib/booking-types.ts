@@ -26,4 +26,5 @@ export interface StoreSettingsData {
   taxPercentage: number;
   serviceChargePercentage: number;
   weekendDays: number[];
+  paymentGatewayEnabled: boolean;
 }

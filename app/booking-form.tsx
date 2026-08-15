@@ -81,6 +81,7 @@ export default function BookingForm({
   const [bookingError, setBookingError] = useState<string | null>(null);
   const [bookingPending, setBookingPending] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [paymentProof, setPaymentProof] = useState<File | null>(null);
 
   const [reservedHours, setReservedHours] = useState<Set<number>>(new Set());
 
@@ -356,7 +357,8 @@ export default function BookingForm({
     date !== "" &&
     selectedTable !== null &&
     hasTime &&
-    consent;
+    consent &&
+    (initialStoreSettings?.paymentGatewayEnabled !== false || !!paymentProof);
 
   const pollBookingStatus = async (orderId: string) => {
     for (let attempt = 0; attempt < 10; attempt += 1) {
@@ -415,81 +417,123 @@ export default function BookingForm({
     setBookingPending(null);
 
     try {
-      if (!window.snap || !isSnapReady) {
-        throw new Error("Midtrans Snap belum siap. Silakan coba lagi.");
-      }
+      if (initialStoreSettings?.paymentGatewayEnabled === false) {
+        if (!paymentProof) {
+          throw new Error("Bukti pembayaran wajib diunggah.");
+        }
 
-      const response = await fetch("/api/payment/create-transaction", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: name.trim(),
-          phone: phone.trim(),
-          assetId: String(selectedItem?.id || ""),
-          date,
-          startHour,
-          endHour,
-          voucherCode: appliedVoucher?.code || null,
-        }),
-      });
+        const formData = new FormData();
+        formData.set("name", name.trim());
+        formData.set("phone", phone.trim());
+        formData.set("assetId", String(selectedItem?.id || ""));
+        formData.set("date", date);
+        formData.set("startHour", String(startHour));
+        formData.set("endHour", String(endHour));
+        if (appliedVoucher?.code) {
+          formData.set("voucherCode", appliedVoucher.code);
+        }
+        formData.set("paymentProof", paymentProof);
 
-      const payload = (await response.json()) as {
-        error?: string;
-        snapToken?: string;
-        orderId?: string;
-        paymentExpiresAt?: string | null;
-      };
+        const response = await fetch("/api/bookings/manual", {
+          method: "POST",
+          body: formData,
+        });
 
-      if (!response.ok || !payload.snapToken || !payload.orderId) {
-        throw new Error(payload.error || "Gagal membuat transaksi pembayaran.");
-      }
+        const payload = (await response.json()) as {
+          error?: string;
+          message?: string;
+        };
 
-      const pendingText = payload.paymentExpiresAt
-        ? `Menunggu pembayaran sampai ${new Date(
-            payload.paymentExpiresAt,
-          ).toLocaleString("id-ID", {
-            day: "numeric",
-            month: "long",
-            year: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-          })} WIB.`
-        : "Menunggu pembayaran Anda di Midtrans.";
+        if (!response.ok) {
+          throw new Error(payload.error || "Gagal mengirim booking manual.");
+        }
 
-      setBookingPending(pendingText);
+        const detail = `${name.trim()}, ${tableName} · ${formattedDateStr} · ${formattedTimeStr} · Total ${formatRp(
+          total,
+        )}`;
+        setBookingPending(null);
+        setBookingSuccess(
+          payload.message
+            ? `${detail} · ${payload.message}`
+            : `${detail} · Bukti pembayaran menunggu verifikasi admin.`,
+        );
+      } else {
+        if (!window.snap || !isSnapReady) {
+          throw new Error("Midtrans Snap belum siap. Silakan coba lagi.");
+        }
 
-      window.snap.pay(payload.snapToken, {
-        onSuccess: async () => {
-          const finalStatus = await pollBookingStatus(payload.orderId!);
+        const response = await fetch("/api/payment/create-transaction", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: name.trim(),
+            phone: phone.trim(),
+            assetId: String(selectedItem?.id || ""),
+            date,
+            startHour,
+            endHour,
+            voucherCode: appliedVoucher?.code || null,
+          }),
+        });
 
-          if (finalStatus === "reserved") {
-            const detail = `${name.trim()}, ${tableName} · ${formattedDateStr} · ${formattedTimeStr} · Total ${formatRp(
-              total,
-            )}`;
+        const payload = (await response.json()) as {
+          error?: string;
+          snapToken?: string;
+          orderId?: string;
+          paymentExpiresAt?: string | null;
+        };
+
+        if (!response.ok || !payload.snapToken || !payload.orderId) {
+          throw new Error(payload.error || "Gagal membuat transaksi pembayaran.");
+        }
+
+        const pendingText = payload.paymentExpiresAt
+          ? `Menunggu pembayaran sampai ${new Date(
+              payload.paymentExpiresAt,
+            ).toLocaleString("id-ID", {
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+            })} WIB.`
+          : "Menunggu pembayaran Anda di Midtrans.";
+
+        setBookingPending(pendingText);
+
+        window.snap.pay(payload.snapToken, {
+          onSuccess: async () => {
+            const finalStatus = await pollBookingStatus(payload.orderId!);
+
+            if (finalStatus === "reserved") {
+              const detail = `${name.trim()}, ${tableName} · ${formattedDateStr} · ${formattedTimeStr} · Total ${formatRp(
+                total,
+              )}`;
+              setBookingPending(null);
+              setBookingSuccess(detail);
+              return;
+            }
+
+            setBookingPending(
+              "Pembayaran diterima, tetapi konfirmasi booking masih menunggu sinkronisasi webhook.",
+            );
+          },
+          onPending: () => {
+            setBookingPending(pendingText);
+          },
+          onError: () => {
             setBookingPending(null);
-            setBookingSuccess(detail);
-            return;
-          }
-
-          setBookingPending(
-            "Pembayaran diterima, tetapi konfirmasi booking masih menunggu sinkronisasi webhook.",
-          );
-        },
-        onPending: () => {
-          setBookingPending(pendingText);
-        },
-        onError: () => {
-          setBookingPending(null);
-          setBookingError("Pembayaran gagal diproses. Silakan coba lagi.");
-        },
-        onClose: () => {
-          setBookingPending(
-            "Pembayaran belum selesai. Anda bisa melanjutkan pembayaran dari sesi Midtrans yang sama selama belum kedaluwarsa.",
-          );
-        },
-      });
+            setBookingError("Pembayaran gagal diproses. Silakan coba lagi.");
+          },
+          onClose: () => {
+            setBookingPending(
+              "Pembayaran belum selesai. Anda bisa melanjutkan pembayaran dari sesi Midtrans yang sama selama belum kedaluwarsa.",
+            );
+          },
+        });
+      }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Terjadi kesalahan.";
       setBookingError(msg);
@@ -893,6 +937,34 @@ export default function BookingForm({
         </div>
 
         {/* Submit Button */}
+        {initialStoreSettings?.paymentGatewayEnabled === false && (
+          <div className="mt-4 mb-2">
+            <div className="bg-[#fff7dd] border border-gold rounded-2xl p-4 mb-4 text-[13px] leading-6 text-pine">
+              Payment gateway sedang dimatikan admin. Untuk menyelesaikan
+              booking, upload bukti transfer di bawah ini.
+            </div>
+
+            <label
+              htmlFor="payment-proof"
+              className="block font-baloo font-semibold text-[13.5px] text-pine mb-1.5 tracking-wide"
+            >
+              Bukti Pembayaran
+            </label>
+            <input
+              id="payment-proof"
+              type="file"
+              accept=".jpg,.jpeg,.png,.webp,.pdf"
+              onChange={(event) =>
+                setPaymentProof(event.target.files?.[0] || null)
+              }
+              className="w-full bg-white border-[1.5px] border-[#d8cfa9] rounded-xl px-3.5 py-2.5 text-[14px] text-ink outline-none transition-all duration-150 file:mr-3 file:rounded-lg file:border-0 file:bg-pine file:px-3 file:py-2 file:font-semibold file:text-cream-2"
+            />
+            <p className="text-[11.5px] text-muted mt-2 mb-0">
+              Format JPG, PNG, WEBP, atau PDF. Maksimal 5MB.
+            </p>
+          </div>
+        )}
+
         <button
           type="button"
           id="submitBtn"
@@ -900,7 +972,11 @@ export default function BookingForm({
           onClick={handleSubmit}
           className="w-full bg-gold text-pine border-none rounded-2xl py-3.5 px-4 font-baloo font-bold text-xl tracking-wide cursor-pointer mt-2 transition-all duration-150 shadow-[0_4px_0_0_#a9843a] hover:enabled:bg-gold-soft active:enabled:translate-y-0.5 active:enabled:shadow-[0_2px_0_0_#a9843a] disabled:opacity-45 disabled:cursor-not-allowed disabled:shadow-none"
         >
-          {isSubmitting ? "Memproses..." : "Bayar & Konfirmasi Booking"}
+          {isSubmitting
+            ? "Memproses..."
+            : initialStoreSettings?.paymentGatewayEnabled === false
+              ? "Upload Bukti & Konfirmasi Booking"
+              : "Bayar & Konfirmasi Booking"}
         </button>
 
         <p className="text-center text-[11.5px] text-muted mt-4">
