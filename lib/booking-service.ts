@@ -53,11 +53,19 @@ function normalizeHourValue(value: unknown): number | null {
 function resolveBusinessHours(row: Record<string, unknown> | null | undefined) {
   const openingHour =
     normalizeHourValue(
-      row?.opening_hour ?? row?.open_hour ?? row?.opening_time ?? row?.open_time,
+      row?.rental_open_time ??
+        row?.opening_hour ??
+        row?.open_hour ??
+        row?.opening_time ??
+        row?.open_time,
     ) ?? DEFAULT_OPENING_HOUR;
   const closingHour =
     normalizeHourValue(
-      row?.closing_hour ?? row?.close_hour ?? row?.closing_time ?? row?.close_time,
+      row?.rental_close_time ??
+        row?.closing_hour ??
+        row?.close_hour ??
+        row?.closing_time ??
+        row?.close_time,
     ) ?? DEFAULT_CLOSING_HOUR;
 
   return {
@@ -205,7 +213,7 @@ export async function getStoreSettings(): Promise<StoreSettingsData> {
     const { data: specificData } = await supabase
       .from("store_settings")
       .select(
-        "tax_percentage, service_charge_percentage, store_name, weekend_days, payment_gateway_enabled, opening_hour, closing_hour, open_hour, close_hour, opening_time, closing_time, open_time, close_time",
+        "tax_percentage, service_charge_percentage, store_name, weekend_days, payment_gateway_enabled, rental_open_time, rental_close_time",
       )
       .ilike("store_name", "%Satu Meja%")
       .limit(1)
@@ -217,7 +225,7 @@ export async function getStoreSettings(): Promise<StoreSettingsData> {
         await supabase
           .from("store_settings")
           .select(
-            "tax_percentage, service_charge_percentage, weekend_days, payment_gateway_enabled, opening_hour, closing_hour, open_hour, close_hour, opening_time, closing_time, open_time, close_time",
+            "tax_percentage, service_charge_percentage, weekend_days, payment_gateway_enabled, rental_open_time, rental_close_time",
           )
           .limit(1)
           .maybeSingle()

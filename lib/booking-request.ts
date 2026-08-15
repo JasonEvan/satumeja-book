@@ -42,6 +42,8 @@ interface StoreSettingsRow {
   service_charge_percentage: number | null;
   weekend_days: number[] | null;
   payment_gateway_enabled?: boolean | null;
+  rental_open_time?: string | null;
+  rental_close_time?: string | null;
   opening_hour?: number | string | null;
   closing_hour?: number | string | null;
   open_hour?: number | string | null;
@@ -136,11 +138,19 @@ function buildStoreSettings(row: StoreSettingsRow | null): StoreSettingsData {
 
   const openingHour =
     parseHour(
-      row?.opening_hour ?? row?.open_hour ?? row?.opening_time ?? row?.open_time,
+      row?.rental_open_time ??
+        row?.opening_hour ??
+        row?.open_hour ??
+        row?.opening_time ??
+        row?.open_time,
     ) ?? 10;
   const closingHour =
     parseHour(
-      row?.closing_hour ?? row?.close_hour ?? row?.closing_time ?? row?.close_time,
+      row?.rental_close_time ??
+        row?.closing_hour ??
+        row?.close_hour ??
+        row?.closing_time ??
+        row?.close_time,
     ) ?? 23;
 
   return {
@@ -214,7 +224,7 @@ export async function fetchBookingQuote(
       supabase
         .from("store_settings")
         .select(
-          "tax_percentage, service_charge_percentage, weekend_days, payment_gateway_enabled, opening_hour, closing_hour, open_hour, close_hour, opening_time, closing_time, open_time, close_time",
+          "tax_percentage, service_charge_percentage, weekend_days, payment_gateway_enabled, rental_open_time, rental_close_time",
         )
         .eq("outlet_id", asset.outlet_id)
         .limit(1)
