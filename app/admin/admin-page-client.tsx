@@ -193,46 +193,86 @@ export default function AdminPageClient({
         )}
 
         <div className="rounded-3xl border border-dashed border-gold bg-white p-5">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="min-w-0">
-              <p className="font-baloo text-xl text-pine m-0">
-                Gunakan Payment Gateway
-              </p>
-              <p className="text-sm text-muted mt-2 mb-0 leading-6">
-                Saat aktif, customer bayar lewat Midtrans. Saat nonaktif,
-                customer wajib upload bukti transfer dan booking langsung masuk
-                ke status reservasi.
-              </p>
-            </div>
-            <div className="flex shrink-0 items-center justify-between rounded-2xl border border-[#d8cfa9] bg-[#fffdf5] px-4 py-3 sm:min-w-[210px]">
-              <div className="pr-4">
-                <p className="m-0 text-xs font-semibold uppercase tracking-[0.08em] text-muted">
-                  Toggle
-                </p>
-                <p className="m-0 mt-1 text-sm font-semibold text-pine">
-                  {paymentGatewayEnabled ? "Midtrans ON" : "Midtrans OFF"}
-                </p>
-              </div>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={paymentGatewayEnabled}
-                aria-label="Gunakan Payment Gateway"
-                disabled={isSaving}
-                onClick={() => handleSave(!paymentGatewayEnabled)}
-                className={`relative h-10 w-20 shrink-0 rounded-full border-2 transition-colors duration-200 cursor-pointer ${
-                  paymentGatewayEnabled
-                    ? "border-pine bg-pine"
-                    : "border-[#c7bc98] bg-[#d8cfa9]"
-                } ${isSaving ? "opacity-60 cursor-not-allowed" : ""}`}
-              >
+          <div className="mb-4">
+            <p className="font-baloo text-xl text-pine m-0">
+              Gunakan Payment Gateway
+            </p>
+            <p className="text-sm text-muted mt-2 mb-0 leading-6">
+              Saat aktif, customer bayar lewat Midtrans. Saat nonaktif,
+              customer wajib upload bukti transfer dan booking langsung masuk
+              ke status reservasi.
+            </p>
+          </div>
+
+          <div className="flex justify-start sm:justify-end">
+            <button
+              type="button"
+              role="switch"
+              aria-checked={paymentGatewayEnabled}
+              aria-label="Gunakan Payment Gateway"
+              disabled={isSaving}
+              onClick={() => handleSave(!paymentGatewayEnabled)}
+              className={`group relative shrink-0 overflow-hidden rounded-[26px] border px-4 py-3 text-left transition-all duration-300 sm:min-w-[250px] ${
+                paymentGatewayEnabled
+                  ? "border-pine bg-[linear-gradient(135deg,#1b3a2b_0%,#295540_55%,#3d7458_100%)] text-cream-2 shadow-[0_14px_30px_-18px_rgba(27,58,43,0.8)]"
+                  : "border-[#cdbf96] bg-[linear-gradient(135deg,#fffaf0_0%,#f1e4bf_58%,#dccb9d_100%)] text-pine shadow-[0_14px_26px_-20px_rgba(122,96,35,0.55)]"
+              } ${isSaving ? "cursor-not-allowed opacity-70" : "cursor-pointer hover:-translate-y-0.5 hover:shadow-[0_18px_34px_-18px_rgba(27,58,43,0.45)]"}`}
+            >
+              <span
+                className={`pointer-events-none absolute inset-y-0 ${
+                  paymentGatewayEnabled ? "right-0" : "left-0"
+                } w-24 opacity-70 blur-2xl transition-all duration-300 ${
+                  paymentGatewayEnabled ? "bg-[#8ec6aa]/30" : "bg-white/60"
+                }`}
+              />
+              <span className="relative flex items-center justify-between gap-4">
+                <span className="min-w-0">
+                  <span className="block text-[11px] font-semibold uppercase tracking-[0.14em] opacity-80">
+                    Payment Mode
+                  </span>
+                  <span className="mt-1 block font-baloo text-lg leading-none">
+                    {paymentGatewayEnabled ? "Midtrans Active" : "Manual Proof"}
+                  </span>
+                  <span className="mt-1.5 block text-xs leading-5 opacity-85">
+                    {paymentGatewayEnabled
+                      ? "Customer pays instantly with gateway checkout."
+                      : "Customer uploads transfer proof for admin review."}
+                  </span>
+                </span>
+
                 <span
-                  className={`absolute top-1 h-7 w-7 rounded-full bg-cream-2 shadow-sm transition-transform duration-200 ${
-                    paymentGatewayEnabled ? "translate-x-11" : "translate-x-1"
+                  className={`relative flex h-14 w-[92px] shrink-0 items-center rounded-full border px-2 transition-all duration-300 ${
+                    paymentGatewayEnabled
+                      ? "border-white/25 bg-white/10"
+                      : "border-[#bda96e] bg-white/55"
                   }`}
-                />
-              </button>
-            </div>
+                >
+                  <span
+                    className={`absolute top-1/2 h-10 w-10 -translate-y-1/2 rounded-full transition-all duration-300 ${
+                      paymentGatewayEnabled
+                        ? "left-[46px] bg-cream-2 shadow-[0_8px_18px_-8px_rgba(0,0,0,0.45)]"
+                        : "left-2 bg-pine shadow-[0_8px_18px_-8px_rgba(27,58,43,0.5)]"
+                    }`}
+                  />
+                  <span className="relative z-10 flex w-full justify-between px-1 text-[10px] font-bold uppercase tracking-[0.14em]">
+                    <span
+                      className={
+                        paymentGatewayEnabled ? "text-cream-2/85" : "text-pine"
+                      }
+                    >
+                      Off
+                    </span>
+                    <span
+                      className={
+                        paymentGatewayEnabled ? "text-cream-2" : "text-pine/70"
+                      }
+                    >
+                      On
+                    </span>
+                  </span>
+                </span>
+              </span>
+            </button>
           </div>
 
           <div className="mt-4 inline-flex rounded-full bg-[#fff7dd] px-3 py-1 text-sm font-semibold text-pine">
