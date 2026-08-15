@@ -8,6 +8,7 @@ import {
   normalizeBookingPayload,
   reserveBooking,
 } from "@/lib/booking-request";
+import { isPastBookingStart } from "@/lib/booking-time";
 import { PAYMENT_PROOF_BUCKET } from "@/lib/payment-settings";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createPublicServerClient } from "@/utils/supabase/public-server";
@@ -76,6 +77,10 @@ export async function POST(request: Request) {
       payload.endHour <= payload.startHour
     ) {
       return jsonError("Jam booking tidak valid.");
+    }
+
+    if (isPastBookingStart(payload.date, payload.startHour)) {
+      return jsonError("Jam booking sudah lewat. Silakan pilih jam lain.");
     }
 
     const publicClient = createPublicServerClient();

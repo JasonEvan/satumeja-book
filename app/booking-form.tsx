@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
 
 import { calculateBookingTotals } from "@/lib/booking-pricing";
+import { getTodayWib, isPastBookingStart } from "@/lib/booking-time";
 import type {
   RatesData,
   StoreSettingsData,
@@ -27,17 +28,6 @@ function formatRp(n: number) {
   return "Rp" + Math.round(n).toLocaleString("id-ID");
 }
 
-function getTodayWIB() {
-  const now = new Date();
-  const wib = new Date(
-    now.toLocaleString("en-US", { timeZone: "Asia/Jakarta" }),
-  );
-  const yyyy = wib.getFullYear();
-  const mm = String(wib.getMonth() + 1).padStart(2, "0");
-  const dd = String(wib.getDate()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd}`;
-}
-
 interface BookingFormProps {
   initialTables: TableItem[];
   initialRates: RatesData;
@@ -54,10 +44,11 @@ export default function BookingForm({
   const [isSnapReady, setIsSnapReady] = useState(
     () => typeof window !== "undefined" && !!window.snap,
   );
+  const [currentTime, setCurrentTime] = useState(() => new Date());
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [date, setDate] = useState("");
-  const [minDate] = useState(getTodayWIB);
+  const [minDate, setMinDate] = useState(() => getTodayWib());
   const [selectedTable, setSelectedTable] = useState<number | string | null>(
     null,
   );
@@ -89,6 +80,20 @@ export default function BookingForm({
     setStartHour(null);
     setEndHour(null);
   };
+
+  useEffect(() => {
+    const syncCurrentTime = () => {
+      const now = new Date();
+      setCurrentTime(now);
+      setMinDate(getTodayWib(now));
+    };
+
+    syncCurrentTime();
+
+    const intervalId = window.setInterval(syncCurrentTime, 30_000);
+
+    return () => window.clearInterval(intervalId);
+  }, []);
 
   useEffect(() => {
     const snapUrl = process.env.NEXT_PUBLIC_MIDTRANS_SNAP_URL;
@@ -241,9 +246,11 @@ export default function BookingForm({
     return reservedHours;
   }, [selectedTable, date, reservedHours]);
 
+  const isPastHour = (hour: number) => isPastBookingStart(date, hour, currentTime);
+
   const isRangeAvailable = (fromHour: number, toHour: number) => {
     for (let hour = fromHour; hour < toHour; hour += 1) {
-      if (activeReservedHours.has(hour)) {
+      if (activeReservedHours.has(hour) || isPastHour(hour)) {
         return false;
       }
     }
@@ -253,6 +260,7 @@ export default function BookingForm({
 
   const handleTimeClick = (h: number) => {
     if (!selectedTable) return;
+    if (isPastHour(h)) return;
 
     if (startHour === null || (startHour !== null && endHour !== null)) {
       if (activeReservedHours.has(h)) return;
@@ -320,6 +328,7 @@ export default function BookingForm({
   const hasValidSelectedRange =
     startHour !== null &&
     endHour !== null &&
+    !isPastHour(startHour) &&
     !activeReservedHours.has(startHour) &&
     isRangeAvailable(startHour, endHour);
   const hasTime = hasValidSelectedRange;
@@ -711,6 +720,7 @@ export default function BookingForm({
             {HOURS.map((h) => {
               const isTableSelected = selectedTable !== null;
               const isReserved = activeReservedHours.has(h);
+              const isPast = isPastHour(h);
               const isStart = startHour === h;
               const isEnd = endHour === h;
               const inRange =
@@ -725,7 +735,7 @@ export default function BookingForm({
                 h > startHour &&
                 isRangeAvailable(startHour, h);
               const isDisabled =
-                !isTableSelected || (isReserved && !canUseAsEndBoundary);
+                !isTableSelected || isPast || (isReserved && !canUseAsEndBoundary);
 
               let btnClass =
                 "py-2 px-1 rounded-xl border-[1.5px] border-[#d8cfa9] font-inter font-semibold text-[12.5px] text-center transition-all duration-150";
@@ -744,6 +754,8 @@ export default function BookingForm({
 
               const tooltip = !isTableSelected
                 ? "Silakan pilih meja terlebih dahulu"
+                : isPast
+                  ? "Jam ini sudah lewat"
                 : canUseAsEndBoundary
                   ? "Jam ini bisa dipilih sebagai batas akhir booking"
                 : isReserved

@@ -6,6 +6,7 @@ import {
   reserveBooking,
   type CreateBookingPayload,
 } from "@/lib/booking-request";
+import { isPastBookingStart } from "@/lib/booking-time";
 import { createMidtransOrderId, createMidtransSnapTransaction } from "@/lib/midtrans";
 import { createPublicServerClient } from "@/utils/supabase/public-server";
 
@@ -27,6 +28,10 @@ export async function POST(request: Request) {
 
     if (!Number.isInteger(startHour) || !Number.isInteger(endHour) || endHour <= startHour) {
       return jsonError("Jam booking tidak valid.");
+    }
+
+    if (isPastBookingStart(date, startHour)) {
+      return jsonError("Jam booking sudah lewat. Silakan pilih jam lain.");
     }
 
     const supabase = createPublicServerClient();
