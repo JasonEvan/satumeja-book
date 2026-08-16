@@ -14,6 +14,8 @@ interface AdminPageClientProps {
 
 type BookingFilter = "all" | "review" | "verified" | "missing";
 
+const ADMIN_TIME_ZONE = "Asia/Jakarta";
+
 function formatDateTime(value: string | null) {
   if (!value) {
     return "—";
@@ -91,6 +93,36 @@ function matchesFilter(booking: AdminBookingItem, filter: BookingFilter) {
   }
 
   return getVerificationBucket(booking) === filter;
+}
+
+function getDateInputValue(value: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: ADMIN_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((item) => item.type === type)?.value;
+  const year = part("year");
+  const month = part("month");
+  const day = part("day");
+
+  return year && month && day ? `${year}-${month}-${day}` : null;
+}
+
+function matchesProofUploadDay(booking: AdminBookingItem, day: string) {
+  return !day || getDateInputValue(booking.paymentProofUploadedAt) === day;
 }
 
 function getStatusBadgeColors(bucket: BookingFilter): React.CSSProperties {
@@ -339,20 +371,24 @@ export default function AdminPageClient({
     null,
   );
   const [activeFilter, setActiveFilter] = useState<BookingFilter>("all");
+  const [proofUploadDay, setProofUploadDay] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const reviewCount = bookings.filter(
+  const dayFilteredBookings = bookings.filter((booking) =>
+    matchesProofUploadDay(booking, proofUploadDay),
+  );
+  const reviewCount = dayFilteredBookings.filter(
     (booking) => getVerificationBucket(booking) === "review",
   ).length;
-  const verifiedCount = bookings.filter(
+  const verifiedCount = dayFilteredBookings.filter(
     (booking) => getVerificationBucket(booking) === "verified",
   ).length;
-  const missingCount = bookings.filter(
+  const missingCount = dayFilteredBookings.filter(
     (booking) => getVerificationBucket(booking) === "missing",
   ).length;
-  const filteredBookings = bookings.filter((booking) =>
+  const filteredBookings = dayFilteredBookings.filter((booking) =>
     matchesFilter(booking, activeFilter),
   );
   const selectedBooking =
@@ -669,8 +705,12 @@ export default function AdminPageClient({
           <div className="admin-summary-grid">
             <div className="admin-summary-card">
               <span className="admin-summary-label">Total</span>
-              <strong className="admin-summary-value">{bookings.length}</strong>
-              <span className="admin-summary-note">Booking manual terbaru</span>
+              <strong className="admin-summary-value">
+                {dayFilteredBookings.length}
+              </strong>
+              <span className="admin-summary-note">
+                {proofUploadDay ? "Sesuai tanggal unggah" : "Booking manual terbaru"}
+              </span>
             </div>
             <div className="admin-summary-card">
               <span className="admin-summary-label">Review</span>
@@ -689,6 +729,31 @@ export default function AdminPageClient({
             </div>
           </div>
 
+          <div className="admin-proof-date-filter">
+            <label htmlFor="proof-upload-day">Tanggal unggah bukti</label>
+            <div className="admin-proof-date-filter-controls">
+              <input
+                id="proof-upload-day"
+                type="date"
+                value={proofUploadDay}
+                onChange={(event) => {
+                  setProofUploadDay(event.target.value);
+                  setSelectedBookingId(null);
+                }}
+                style={inputStyle}
+              />
+              {proofUploadDay ? (
+                <button
+                  type="button"
+                  onClick={() => setProofUploadDay("")}
+                  style={ghostButtonStyle}
+                >
+                  Reset
+                </button>
+              ) : null}
+            </div>
+          </div>
+
           <div className="admin-filter-row">
             {(
               [
@@ -704,7 +769,10 @@ export default function AdminPageClient({
                 <button
                   key={filter}
                   type="button"
-                  onClick={() => setActiveFilter(filter)}
+                  onClick={() => {
+                    setActiveFilter(filter);
+                    setSelectedBookingId(null);
+                  }}
                   aria-pressed={isActive}
                   className="admin-filter-chip"
                   style={{
@@ -1060,6 +1128,30 @@ export default function AdminPageClient({
           flex-wrap: wrap;
           gap: 10px;
           margin-bottom: 16px;
+        }
+
+        .admin-proof-date-filter {
+          margin-bottom: 16px;
+        }
+
+        .admin-proof-date-filter label {
+          display: block;
+          margin-bottom: 6px;
+          font-family: var(--font-baloo);
+          font-size: 14px;
+          font-weight: 700;
+          line-height: 18px;
+          color: #1b3a2b;
+        }
+
+        .admin-proof-date-filter-controls {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .admin-proof-date-filter-controls input {
+          flex: 1;
         }
 
         .admin-filter-chip {

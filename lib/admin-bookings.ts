@@ -11,6 +11,7 @@ export interface AdminBookingItem {
   paymentMethod: string | null;
   paymentVerificationStatus: string | null;
   paymentProofPath: string | null;
+  paymentProofUploadedAt: string | null;
   paymentProofMimeType: string | null;
   grossAmount: number | null;
   assetName: string | null;
@@ -27,6 +28,7 @@ interface RentalRow {
   payment_method: string | null;
   payment_verification_status: string | null;
   payment_proof_path: string | null;
+  payment_proof_uploaded_at: string | null;
   payment_proof_mime_type: string | null;
   gross_amount: number | null;
   assets?:
@@ -58,7 +60,7 @@ export async function getAdminBookings(): Promise<AdminBookingItem[]> {
   const { data, error } = await admin
     .from("rentals")
     .select(
-      "id, customer_name, customer_phone, started_at, estimated_ended_at, status, payment_method, payment_verification_status, payment_proof_path, payment_proof_mime_type, gross_amount, assets(asset_name)",
+      "id, customer_name, customer_phone, started_at, estimated_ended_at, status, payment_method, payment_verification_status, payment_proof_path, payment_proof_uploaded_at, payment_proof_mime_type, gross_amount, assets(asset_name)",
     )
     .eq("payment_method", "manual_transfer")
     .order("started_at", { ascending: false })
@@ -98,6 +100,7 @@ export async function getAdminBookings(): Promise<AdminBookingItem[]> {
     paymentMethod: item.payment_method,
     paymentVerificationStatus: item.payment_verification_status,
     paymentProofPath: item.payment_proof_path,
+    paymentProofUploadedAt: item.payment_proof_uploaded_at,
     paymentProofMimeType: item.payment_proof_mime_type,
     grossAmount:
       typeof item.gross_amount === "number" ? item.gross_amount : null,
