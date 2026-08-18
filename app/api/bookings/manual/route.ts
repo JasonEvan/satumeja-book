@@ -15,7 +15,8 @@ import { createPublicServerClient } from "@/utils/supabase/public-server";
 
 export const runtime = "nodejs";
 
-const MAX_PAYMENT_PROOF_BYTES = 5 * 1024 * 1024;
+// Keep this below Vercel's request-body limit so this route can return JSON errors.
+const MAX_PAYMENT_PROOF_BYTES = 4 * 1024 * 1024;
 const ALLOWED_PAYMENT_PROOF_TYPES = new Set([
   "application/pdf",
   "image/jpeg",
@@ -54,7 +55,7 @@ export async function POST(request: Request) {
     }
 
     if (file.size > MAX_PAYMENT_PROOF_BYTES) {
-      return jsonError("Ukuran bukti pembayaran maksimal 5MB.");
+      return jsonError("Ukuran bukti pembayaran maksimal 4MB.");
     }
 
     const payload = normalizeBookingPayload({

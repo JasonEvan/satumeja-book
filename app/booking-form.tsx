@@ -20,6 +20,22 @@ function formatRp(n: number) {
   return "Rp" + Math.round(n).toLocaleString("id-ID");
 }
 
+const MAX_PAYMENT_PROOF_BYTES = 4 * 1024 * 1024;
+const MAX_PAYMENT_PROOF_LABEL = "4MB";
+
+async function getManualBookingResponsePayload(response: Response) {
+  const contentType = response.headers.get("content-type") || "";
+
+  if (contentType.includes("application/json")) {
+    return (await response.json().catch(() => null)) as {
+      error?: string;
+      message?: string;
+    } | null;
+  }
+
+  return null;
+}
+
 interface BookingFormProps {
   initialTables: TableItem[];
   initialRates: RatesData;
@@ -139,7 +155,7 @@ export default function BookingForm({
     if (!selectedTable || !date) return;
 
     const selectedItem = initialTables.find(
-      (t) => t.id === selectedTable || t.name === selectedTable
+      (t) => t.id === selectedTable || t.name === selectedTable,
     );
 
     if (!selectedItem?.id) return;
@@ -208,12 +224,12 @@ export default function BookingForm({
             const startWib = new Date(
               new Date(r.started_at).toLocaleString("en-US", {
                 timeZone: "Asia/Jakarta",
-              })
+              }),
             );
             const endWib = new Date(
               new Date(r.estimated_ended_at).toLocaleString("en-US", {
                 timeZone: "Asia/Jakarta",
-              })
+              }),
             );
 
             const startH = startWib.getHours();
@@ -248,7 +264,8 @@ export default function BookingForm({
     return reservedHours;
   }, [selectedTable, date, reservedHours]);
 
-  const isPastHour = (hour: number) => isPastBookingStart(date, hour, currentTime);
+  const isPastHour = (hour: number) =>
+    isPastBookingStart(date, hour, currentTime);
 
   const isRangeAvailable = (fromHour: number, toHour: number) => {
     for (let hour = fromHour; hour < toHour; hour += 1) {
@@ -415,7 +432,7 @@ export default function BookingForm({
       return;
 
     const selectedItem = initialTables.find(
-      (t) => t.id === selectedTable || t.name === selectedTable
+      (t) => t.id === selectedTable || t.name === selectedTable,
     );
 
     const tableName =
@@ -432,6 +449,12 @@ export default function BookingForm({
       if (initialStoreSettings?.paymentGatewayEnabled === false) {
         if (!paymentProof) {
           throw new Error("Bukti pembayaran wajib diunggah.");
+        }
+
+        if (paymentProof.size > MAX_PAYMENT_PROOF_BYTES) {
+          throw new Error(
+            `Ukuran bukti pembayaran maksimal ${MAX_PAYMENT_PROOF_LABEL}.`,
+          );
         }
 
         const formData = new FormData();
@@ -451,13 +474,20 @@ export default function BookingForm({
           body: formData,
         });
 
-        const payload = (await response.json()) as {
-          error?: string;
-          message?: string;
-        };
+        const payload = await getManualBookingResponsePayload(response);
 
         if (!response.ok) {
-          throw new Error(payload.error || "Gagal mengirim booking manual.");
+          if (response.status === 413) {
+            throw new Error(
+              `Ukuran bukti pembayaran terlalu besar. Maksimal ${MAX_PAYMENT_PROOF_LABEL}.`,
+            );
+          }
+
+          throw new Error(payload?.error || "Gagal mengirim booking manual.");
+        }
+
+        if (!payload) {
+          throw new Error("Respons booking tidak valid. Silakan coba lagi.");
         }
 
         const detail = `${name.trim()}, ${tableName} · ${formattedDateStr} · ${formattedTimeStr} · Total ${formatRp(
@@ -498,7 +528,9 @@ export default function BookingForm({
         };
 
         if (!response.ok || !payload.snapToken || !payload.orderId) {
-          throw new Error(payload.error || "Gagal membuat transaksi pembayaran.");
+          throw new Error(
+            payload.error || "Gagal membuat transaksi pembayaran.",
+          );
         }
 
         const pendingText = payload.paymentExpiresAt
@@ -558,8 +590,9 @@ export default function BookingForm({
   const getSelectedTableLabel = () => {
     if (!selectedTable) return "—";
     return (
-      initialTables.find((item) => item.id === selectedTable || item.name === selectedTable)
-        ?.label || String(selectedTable)
+      initialTables.find(
+        (item) => item.id === selectedTable || item.name === selectedTable,
+      )?.label || String(selectedTable)
     );
   };
 
@@ -660,10 +693,7 @@ export default function BookingForm({
               </span>
             )}
           </label>
-          <div
-            className="grid grid-cols-3 sm:grid-cols-6 gap-2"
-            id="tableGrid"
-          >
+          <div className="grid grid-cols-3 sm:grid-cols-6 gap-2" id="tableGrid">
             {initialTables.map((t) => {
               const isDateSelected = date !== "";
               const isActive =
@@ -720,7 +750,7 @@ export default function BookingForm({
             className="grid grid-cols-4 max-[380px]:grid-cols-3 gap-2"
             id="timeGrid"
           >
-                    {hours.map((h) => {
+            {hours.map((h) => {
               const isTableSelected = selectedTable !== null;
               const isReserved = activeReservedHours.has(h);
               const isPast = isPastHour(h);
@@ -738,7 +768,9 @@ export default function BookingForm({
                 h > startHour &&
                 isRangeAvailable(startHour, h);
               const isDisabled =
-                !isTableSelected || isPast || (isReserved && !canUseAsEndBoundary);
+                !isTableSelected ||
+                isPast ||
+                (isReserved && !canUseAsEndBoundary);
 
               let btnClass =
                 "py-2 px-1 rounded-xl border-[1.5px] border-[#d8cfa9] font-inter font-semibold text-[12.5px] text-center transition-all duration-150";
@@ -748,22 +780,24 @@ export default function BookingForm({
                   " !bg-[#eae5d8] !border-[#d8cfa9] !text-[#a09885] !cursor-not-allowed opacity-75" +
                   (isReserved ? " line-through" : "");
               } else if (isStart || isEnd) {
-                btnClass += " !bg-gold !border-gold !text-pine font-bold shadow-xs cursor-pointer";
+                btnClass +=
+                  " !bg-gold !border-gold !text-pine font-bold shadow-xs cursor-pointer";
               } else if (inRange) {
                 btnClass += " !bg-gold-soft !border-gold cursor-pointer";
               } else {
-                btnClass += " bg-white text-ink cursor-pointer hover:border-gold";
+                btnClass +=
+                  " bg-white text-ink cursor-pointer hover:border-gold";
               }
 
               const tooltip = !isTableSelected
                 ? "Silakan pilih meja terlebih dahulu"
                 : isPast
                   ? "Jam ini sudah lewat"
-                : canUseAsEndBoundary
-                  ? "Jam ini bisa dipilih sebagai batas akhir booking"
-                : isReserved
-                  ? "Meja/Unit ini sudah dipesan pada jam ini"
-                  : undefined;
+                  : canUseAsEndBoundary
+                    ? "Jam ini bisa dipilih sebagai batas akhir booking"
+                    : isReserved
+                      ? "Meja/Unit ini sudah dipesan pada jam ini"
+                      : undefined;
 
               return (
                 <button
@@ -893,7 +927,8 @@ export default function BookingForm({
           {serviceChargeAmount > 0 && (
             <div className="flex justify-between items-center text-[13.5px] py-1.5 text-ink">
               <span className="text-muted">
-                Service Charge ({initialStoreSettings?.serviceChargePercentage}%)
+                Service Charge ({initialStoreSettings?.serviceChargePercentage}
+                %)
               </span>
               <span className="font-semibold text-ink">
                 +{formatRp(serviceChargeAmount)}
@@ -1037,13 +1072,26 @@ export default function BookingForm({
               id="payment-proof"
               type="file"
               accept=".jpg,.jpeg,.png,.webp,.pdf"
-              onChange={(event) =>
-                setPaymentProof(event.target.files?.[0] || null)
-              }
+              onChange={(event) => {
+                const file = event.target.files?.[0] || null;
+
+                if (file && file.size > MAX_PAYMENT_PROOF_BYTES) {
+                  setPaymentProof(null);
+                  setBookingError(
+                    `Ukuran bukti pembayaran maksimal ${MAX_PAYMENT_PROOF_LABEL}.`,
+                  );
+                  event.currentTarget.value = "";
+                  return;
+                }
+
+                setPaymentProof(file);
+                setBookingError(null);
+              }}
               className="w-full bg-white border-[1.5px] border-[#d8cfa9] rounded-xl px-3.5 py-2.5 text-[14px] text-ink outline-none transition-all duration-150 file:mr-3 file:rounded-lg file:border-0 file:bg-pine file:px-3 file:py-2 file:font-semibold file:text-cream-2"
             />
             <p className="text-[11.5px] text-muted mt-2 mb-0">
-              Format JPG, PNG, WEBP, atau PDF. Maksimal 5MB.
+              Format JPG, PNG, WEBP, atau PDF. Maksimal{" "}
+              {MAX_PAYMENT_PROOF_LABEL}.
             </p>
           </div>
         )}
