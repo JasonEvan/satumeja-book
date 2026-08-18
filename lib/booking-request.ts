@@ -4,6 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { calculateBookingTotals } from "@/lib/booking-pricing";
 import type { RatesData, StoreSettingsData } from "@/lib/booking-types";
+import { isVoucherCurrentlyValid } from "@/lib/voucher-validity";
 import {
   DEFAULT_PAYMENT_GATEWAY_ENABLED,
   getPaymentGatewayEnabled,
@@ -60,6 +61,8 @@ interface VoucherRow {
   discount_value: number;
   min_spend: number | null;
   max_discount_amount: number | null;
+  start_date: string | null;
+  end_date: string | null;
 }
 
 export interface BookingQuoteResult {
@@ -170,6 +173,10 @@ function buildVoucherDiscount(voucher: VoucherRow | null, subtotal: number) {
     return null;
   }
 
+  if (!isVoucherCurrentlyValid(voucher)) {
+    throw new Error("Voucher belum berlaku atau sudah berakhir.");
+  }
+
   const minSpend = Number(voucher.min_spend || 0);
 
   if (subtotal < minSpend) {
@@ -237,7 +244,7 @@ export async function fetchBookingQuote(
         ? supabase
             .from("vouchers")
             .select(
-              "code, discount_type, discount_value, min_spend, max_discount_amount",
+              "code, discount_type, discount_value, min_spend, max_discount_amount, start_date, end_date",
             )
             .eq("code", voucherCode)
             .eq("is_active", true)
@@ -265,7 +272,7 @@ export async function fetchBookingQuote(
   }
 
   const totalHours = endHour - startHour;
-  const bookingDate = new Date(`${date}T00:00:00`);
+  const bookingDate = new Date(`${date}T00:00:00+07:00`);
   const storeSettings = buildStoreSettings(settings || null);
 
   const preliminaryTotals = calculateBookingTotals({

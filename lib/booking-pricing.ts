@@ -1,11 +1,28 @@
 import type { RatesData, StoreSettingsData } from "@/lib/booking-types";
 
+const JAKARTA_TIME_ZONE = "Asia/Jakarta";
+const WEEKDAY_INDEX: Record<string, number> = {
+  Sun: 0,
+  Mon: 1,
+  Tue: 2,
+  Wed: 3,
+  Thu: 4,
+  Fri: 5,
+  Sat: 6,
+};
+
+const jakartaWeekdayFormatter = new Intl.DateTimeFormat("en-US", {
+  weekday: "short",
+  timeZone: JAKARTA_TIME_ZONE,
+});
+
 export function getWeekendDays(storeSettings?: StoreSettingsData) {
   return storeSettings?.weekendDays?.length ? storeSettings.weekendDays : [0, 5, 6];
 }
 
 export function isWeekend(dateObj: Date, weekendDays?: number[]) {
-  return (weekendDays || [0, 5, 6]).includes(dateObj.getDay());
+  const weekday = jakartaWeekdayFormatter.format(dateObj);
+  return (weekendDays || [0, 5, 6]).includes(WEEKDAY_INDEX[weekday]);
 }
 
 export function getRatePerHour(

@@ -324,7 +324,7 @@ export default function BookingForm({
   };
 
   const dateObj = useMemo(() => {
-    return date ? new Date(date + "T00:00:00") : null;
+    return date ? new Date(`${date}T00:00:00+07:00`) : null;
   }, [date]);
 
   const hasValidSelectedRange =
@@ -351,6 +351,7 @@ export default function BookingForm({
 
   const formattedDateStr = dateObj
     ? dateObj.toLocaleDateString("id-ID", {
+        timeZone: "Asia/Jakarta",
         weekday: "long",
         day: "numeric",
         month: "long",
