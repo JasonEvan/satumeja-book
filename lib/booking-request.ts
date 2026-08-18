@@ -4,7 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { calculateBookingTotals } from "@/lib/booking-pricing";
 import type { RatesData, StoreSettingsData } from "@/lib/booking-types";
-import { isVoucherCurrentlyValid } from "@/lib/voucher-validity";
+import { isVoucherValidForBookingDate } from "@/lib/voucher-validity";
 import {
   DEFAULT_PAYMENT_GATEWAY_ENABLED,
   getPaymentGatewayEnabled,
@@ -168,13 +168,17 @@ function buildStoreSettings(row: StoreSettingsRow | null): StoreSettingsData {
   };
 }
 
-function buildVoucherDiscount(voucher: VoucherRow | null, subtotal: number) {
+function buildVoucherDiscount(
+  voucher: VoucherRow | null,
+  subtotal: number,
+  bookingDate: string,
+) {
   if (!voucher) {
     return null;
   }
 
-  if (!isVoucherCurrentlyValid(voucher)) {
-    throw new Error("Voucher belum berlaku atau sudah berakhir.");
+  if (!isVoucherValidForBookingDate(voucher, bookingDate)) {
+    throw new Error("Voucher tidak berlaku untuk tanggal booking yang dipilih.");
   }
 
   const minSpend = Number(voucher.min_spend || 0);
@@ -286,6 +290,7 @@ export async function fetchBookingQuote(
   const voucherDiscount = buildVoucherDiscount(
     vouchers || null,
     preliminaryTotals.subtotal,
+    date,
   );
 
   const totals = calculateBookingTotals({

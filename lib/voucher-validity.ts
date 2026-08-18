@@ -16,11 +16,14 @@ function getJakartaDate(value: Date) {
   return jakartaDateFormatter.format(value);
 }
 
-export function isVoucherCurrentlyValid(
+export function isVoucherValidForBookingDate(
   voucher: VoucherValidityWindow,
-  now: Date = new Date(),
+  bookingDate: string,
 ) {
-  const today = getJakartaDate(now);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(bookingDate)) {
+    return false;
+  }
+
   const startsOn = voucher.start_date
     ? getJakartaDate(new Date(voucher.start_date))
     : null;
@@ -28,5 +31,8 @@ export function isVoucherCurrentlyValid(
     ? getJakartaDate(new Date(voucher.end_date))
     : null;
 
-  return (!startsOn || today >= startsOn) && (!endsOn || today <= endsOn);
+  return (
+    (!startsOn || bookingDate >= startsOn) &&
+    (!endsOn || bookingDate <= endsOn)
+  );
 }

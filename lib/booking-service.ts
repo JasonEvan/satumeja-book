@@ -10,7 +10,6 @@ import {
   DEFAULT_PAYMENT_GATEWAY_ENABLED,
   getPaymentGatewayEnabled,
 } from "@/lib/payment-settings";
-import { isVoucherCurrentlyValid } from "@/lib/voucher-validity";
 
 const DEFAULT_RATES: RatesData = {
   weekday: [
@@ -178,15 +177,15 @@ export async function getVouchers(): Promise<Record<string, VoucherItem>> {
 
     if (dbVouchers && dbVouchers.length > 0) {
       const vouchersObj: Record<string, VoucherItem> = {};
-    dbVouchers.filter((voucher) => isVoucherCurrentlyValid(voucher)).forEach(
-      (v: {
-        code: string;
-        discount_type: string;
-        discount_value: number;
-        description?: string;
-        start_date?: string | null;
-        end_date?: string | null;
-      }) => {
+      dbVouchers.forEach(
+        (v: {
+          code: string;
+          discount_type: string;
+          discount_value: number;
+          description?: string;
+          start_date?: string | null;
+          end_date?: string | null;
+        }) => {
           const isPercent =
             v.discount_type === "percent" || v.discount_type === "percentage";
           vouchersObj[v.code.toUpperCase()] = {
@@ -197,8 +196,10 @@ export async function getVouchers(): Promise<Record<string, VoucherItem>> {
               (isPercent
                 ? `${v.discount_value}% off`
                 : `Rp${v.discount_value} off`),
+            startDate: v.start_date,
+            endDate: v.end_date,
           };
-        }
+        },
       );
       return vouchersObj;
     }

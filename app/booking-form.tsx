@@ -5,6 +5,7 @@ import { createClient } from "@/utils/supabase/client";
 
 import { calculateBookingTotals } from "@/lib/booking-pricing";
 import { getTodayWib, isPastBookingStart } from "@/lib/booking-time";
+import { isVoucherValidForBookingDate } from "@/lib/voucher-validity";
 import type {
   RatesData,
   StoreSettingsData,
@@ -22,6 +23,16 @@ function formatRp(n: number) {
 
 const MAX_PAYMENT_PROOF_BYTES = 4 * 1024 * 1024;
 const MAX_PAYMENT_PROOF_LABEL = "4MB";
+
+function isVoucherAvailableOn(voucher: VoucherItem, bookingDate: string) {
+  return isVoucherValidForBookingDate(
+    {
+      start_date: voucher.startDate,
+      end_date: voucher.endDate,
+    },
+    bookingDate,
+  );
+}
 
 async function getManualBookingResponsePayload(response: Response) {
   const contentType = response.headers.get("content-type") || "";
@@ -79,6 +90,8 @@ export default function BookingForm({
     type: "percent" | "flat";
     value: number;
     label: string;
+    startDate?: string | null;
+    endDate?: string | null;
   } | null>(null);
   const [voucherMsg, setVoucherMsg] = useState<{
     text: string;
@@ -325,7 +338,19 @@ export default function BookingForm({
       setVoucherMsg(null);
       return;
     }
-    if (initialVouchers[code]) {
+    if (!date) {
+      setAppliedVoucher(null);
+      setVoucherMsg({
+        text: "Pilih tanggal booking terlebih dahulu.",
+        type: "err",
+      });
+      return;
+    }
+
+    if (
+      initialVouchers[code] &&
+      isVoucherAvailableOn(initialVouchers[code], date)
+    ) {
       setAppliedVoucher({ code, ...initialVouchers[code] });
       setVoucherMsg({
         text: `Voucher "${code}" diterapkan — ${initialVouchers[code].label}`,
@@ -334,7 +359,7 @@ export default function BookingForm({
     } else {
       setAppliedVoucher(null);
       setVoucherMsg({
-        text: "Kode voucher tidak valid.",
+        text: "Kode voucher tidak berlaku untuk tanggal booking yang dipilih.",
         type: "err",
       });
     }
@@ -675,7 +700,18 @@ export default function BookingForm({
             min={minDate}
             value={date}
             onChange={(e) => {
-              setDate(e.target.value);
+              const nextDate = e.target.value;
+              setDate(nextDate);
+              if (
+                appliedVoucher &&
+                !isVoucherAvailableOn(appliedVoucher, nextDate)
+              ) {
+                setAppliedVoucher(null);
+                setVoucherMsg({
+                  text: "Voucher tidak berlaku untuk tanggal booking yang dipilih.",
+                  type: "err",
+                });
+              }
               setReservedHours(new Set());
               resetTimeSelection();
             }}

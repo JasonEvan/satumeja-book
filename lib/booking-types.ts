@@ -20,6 +20,8 @@ export interface VoucherItem {
   type: "percent" | "flat";
   value: number;
   label: string;
+  startDate?: string | null;
+  endDate?: string | null;
 }
 
 export interface StoreSettingsData {
