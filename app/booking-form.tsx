@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { createClient } from "@/utils/supabase/client";
 
 import { calculateBookingTotals } from "@/lib/booking-pricing";
@@ -105,12 +105,31 @@ export default function BookingForm({
   const [bookingPending, setBookingPending] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [paymentProof, setPaymentProof] = useState<File | null>(null);
+  const paymentProofInputRef = useRef<HTMLInputElement>(null);
 
   const [reservedHours, setReservedHours] = useState<Set<number>>(new Set());
 
   const resetTimeSelection = () => {
     setStartHour(null);
     setEndHour(null);
+  };
+
+  const resetBookingForm = () => {
+    setName("");
+    setPhone("");
+    setDate("");
+    setSelectedTable(null);
+    resetTimeSelection();
+    setVoucherInput("");
+    setAppliedVoucher(null);
+    setVoucherMsg(null);
+    setConsent(false);
+    setPaymentProof(null);
+    setReservedHours(new Set());
+
+    if (paymentProofInputRef.current) {
+      paymentProofInputRef.current.value = "";
+    }
   };
 
   useEffect(() => {
@@ -537,6 +556,7 @@ export default function BookingForm({
             ? `${detail} · ${payload.message}`
             : `${detail} · Bukti pembayaran menunggu verifikasi admin.`,
         );
+        resetBookingForm();
       } else {
         if (!window.snap || !isSnapReady) {
           throw new Error("Midtrans Snap belum siap. Silakan coba lagi.");
@@ -595,6 +615,7 @@ export default function BookingForm({
               )}`;
               setBookingPending(null);
               setBookingSuccess(detail);
+              resetBookingForm();
               return;
             }
 
@@ -1130,6 +1151,7 @@ export default function BookingForm({
             </label>
             <input
               id="payment-proof"
+              ref={paymentProofInputRef}
               type="file"
               accept=".jpg,.jpeg,.png,.webp,.pdf"
               onChange={(event) => {
