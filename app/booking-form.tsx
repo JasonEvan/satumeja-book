@@ -5,6 +5,7 @@ import { createClient } from "@/utils/supabase/client";
 
 import { calculateBookingTotals } from "@/lib/booking-pricing";
 import { getTodayWib, isPastBookingStart } from "@/lib/booking-time";
+import { isStoreClosedOnBookingDate } from "@/lib/store-closed-days";
 import { isVoucherValidForBookingDate } from "@/lib/voucher-validity";
 import type {
   RatesData,
@@ -279,8 +280,16 @@ export default function BookingForm({
 
   const isPastHour = (hour: number) =>
     isPastBookingStart(date, hour, currentTime);
+  const isStoreClosed = isStoreClosedOnBookingDate(
+    date,
+    initialStoreSettings?.closedWeekdays,
+  );
 
   const isRangeAvailable = (fromHour: number, toHour: number) => {
+    if (isStoreClosed) {
+      return false;
+    }
+
     for (let hour = fromHour; hour < toHour; hour += 1) {
       if (activeReservedHours.has(hour) || isPastHour(hour)) {
         return false;
@@ -291,7 +300,7 @@ export default function BookingForm({
   };
 
   const handleTimeClick = (h: number) => {
-    if (!selectedTable) return;
+    if (!selectedTable || isStoreClosed) return;
     if (isPastHour(h)) return;
 
     if (startHour === null || (startHour !== null && endHour !== null)) {
@@ -318,6 +327,8 @@ export default function BookingForm({
   const getTimeHintText = () => {
     if (!date) {
       return "Silakan pilih tanggal terlebih dahulu.";
+    } else if (isStoreClosed) {
+      return "Outlet tutup pada tanggal yang dipilih. Silakan pilih tanggal lain.";
     } else if (!selectedTable) {
       return "Silakan pilih meja terlebih dahulu.";
     } else if (startHour === null) {
@@ -372,6 +383,7 @@ export default function BookingForm({
   const hasValidSelectedRange =
     startHour !== null &&
     endHour !== null &&
+    !isStoreClosed &&
     !isPastHour(startHour) &&
     !activeReservedHours.has(startHour) &&
     isRangeAvailable(startHour, endHour);
@@ -409,6 +421,7 @@ export default function BookingForm({
     name.trim() !== "" &&
     phone.trim() !== "" &&
     date !== "" &&
+    !isStoreClosed &&
     selectedTable !== null &&
     hasTime &&
     consent &&
@@ -717,6 +730,11 @@ export default function BookingForm({
             }}
             className="w-full bg-white border-[1.5px] border-[#d8cfa9] rounded-xl px-3.5 py-2.5 font-inter text-[14px] text-ink outline-none transition-all duration-150 appearance-none focus:border-pine focus:ring-2 focus:ring-pine/15 placeholder:text-[#b9b09a]"
           />
+          {isStoreClosed && (
+            <p className="mt-2 mb-0 rounded-xl border border-red/30 bg-red/10 px-3 py-2 text-[12.5px] font-semibold text-red">
+              Outlet tutup pada tanggal yang dipilih. Booking tidak tersedia.
+            </p>
+          )}
         </div>
 
         {/* Meja / Asset Grid */}
@@ -732,6 +750,7 @@ export default function BookingForm({
           <div className="grid grid-cols-3 sm:grid-cols-6 gap-2" id="tableGrid">
             {initialTables.map((t) => {
               const isDateSelected = date !== "";
+              const isTableUnavailable = !isDateSelected || isStoreClosed;
               const isActive =
                 isDateSelected &&
                 (selectedTable === t.id || selectedTable === t.name);
@@ -739,7 +758,7 @@ export default function BookingForm({
               let btnClass =
                 "min-h-[44px] rounded-xl border-[1.5px] font-baloo font-bold text-xs sm:text-sm p-2 text-center leading-tight break-words transition-all duration-150 flex items-center justify-center";
 
-              if (!isDateSelected) {
+              if (isTableUnavailable) {
                 btnClass +=
                   " bg-[#eae5d8] border-[#d8cfa9] text-[#a09885] cursor-not-allowed opacity-75";
               } else if (isActive) {
@@ -754,7 +773,7 @@ export default function BookingForm({
                 <button
                   key={t.id}
                   type="button"
-                  disabled={!isDateSelected}
+                  disabled={isTableUnavailable}
                   onClick={() => {
                     setSelectedTable(t.id);
                     setReservedHours(new Set());
@@ -764,6 +783,8 @@ export default function BookingForm({
                   title={
                     !isDateSelected
                       ? "Silakan pilih tanggal terlebih dahulu"
+                      : isStoreClosed
+                        ? "Outlet tutup pada tanggal yang dipilih"
                       : undefined
                   }
                 >
@@ -805,6 +826,7 @@ export default function BookingForm({
                 isRangeAvailable(startHour, h);
               const isDisabled =
                 !isTableSelected ||
+                isStoreClosed ||
                 isPast ||
                 (isReserved && !canUseAsEndBoundary);
 
@@ -827,6 +849,8 @@ export default function BookingForm({
 
               const tooltip = !isTableSelected
                 ? "Silakan pilih meja terlebih dahulu"
+                : isStoreClosed
+                  ? "Outlet tutup pada tanggal yang dipilih"
                 : isPast
                   ? "Jam ini sudah lewat"
                   : canUseAsEndBoundary

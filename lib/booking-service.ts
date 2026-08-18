@@ -217,7 +217,7 @@ export async function getStoreSettings(): Promise<StoreSettingsData> {
     const { data: specificData } = await supabase
       .from("store_settings")
       .select(
-        "tax_percentage, service_charge_percentage, store_name, weekend_days, payment_gateway_enabled, rental_open_time, rental_close_time",
+        "tax_percentage, service_charge_percentage, store_name, weekend_days, closed_weekdays, payment_gateway_enabled, rental_open_time, rental_close_time",
       )
       .ilike("store_name", "%Satu Meja%")
       .limit(1)
@@ -229,7 +229,7 @@ export async function getStoreSettings(): Promise<StoreSettingsData> {
         await supabase
           .from("store_settings")
           .select(
-            "tax_percentage, service_charge_percentage, weekend_days, payment_gateway_enabled, rental_open_time, rental_close_time",
+            "tax_percentage, service_charge_percentage, weekend_days, closed_weekdays, payment_gateway_enabled, rental_open_time, rental_close_time",
           )
           .limit(1)
           .maybeSingle()
@@ -245,6 +245,14 @@ export async function getStoreSettings(): Promise<StoreSettingsData> {
         weekendDays: Array.isArray(data.weekend_days)
           ? data.weekend_days.map((value: unknown) => Number(value))
           : [0, 5, 6],
+        closedWeekdays: Array.isArray(data.closed_weekdays)
+          ? data.closed_weekdays
+              .map((value: unknown) => Number(value))
+              .filter(
+                (value: number) =>
+                  Number.isInteger(value) && value >= 0 && value <= 6,
+              )
+          : [],
         paymentGatewayEnabled: getPaymentGatewayEnabled(data),
         openingHour,
         closingHour,
@@ -258,6 +266,7 @@ export async function getStoreSettings(): Promise<StoreSettingsData> {
     taxPercentage: 0,
     serviceChargePercentage: 0,
     weekendDays: [0, 5, 6],
+    closedWeekdays: [],
     paymentGatewayEnabled: DEFAULT_PAYMENT_GATEWAY_ENABLED,
     openingHour: DEFAULT_OPENING_HOUR,
     closingHour: DEFAULT_CLOSING_HOUR,

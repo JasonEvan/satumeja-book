@@ -4,6 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { calculateBookingTotals } from "@/lib/booking-pricing";
 import type { RatesData, StoreSettingsData } from "@/lib/booking-types";
+import { isStoreClosedOnBookingDate } from "@/lib/store-closed-days";
 import { isVoucherValidForBookingDate } from "@/lib/voucher-validity";
 import {
   DEFAULT_PAYMENT_GATEWAY_ENABLED,
@@ -42,6 +43,7 @@ interface StoreSettingsRow {
   tax_percentage: number | null;
   service_charge_percentage: number | null;
   weekend_days: number[] | null;
+  closed_weekdays?: number[] | null;
   payment_gateway_enabled?: boolean | null;
   rental_open_time?: string | null;
   rental_close_time?: string | null;
@@ -162,6 +164,11 @@ function buildStoreSettings(row: StoreSettingsRow | null): StoreSettingsData {
     weekendDays:
       row?.weekend_days?.map((value) => Number(value)).filter(Number.isFinite) ||
       [0, 5, 6],
+    closedWeekdays:
+      row?.closed_weekdays
+        ?.map((value) => Number(value))
+        .filter((value) => Number.isInteger(value) && value >= 0 && value <= 6) ||
+      [],
     paymentGatewayEnabled: getPaymentGatewayEnabled(row),
     openingHour,
     closingHour: closingHour >= openingHour ? closingHour : 23,
@@ -235,7 +242,7 @@ export async function fetchBookingQuote(
       supabase
         .from("store_settings")
         .select(
-          "tax_percentage, service_charge_percentage, weekend_days, payment_gateway_enabled, rental_open_time, rental_close_time",
+          "tax_percentage, service_charge_percentage, weekend_days, closed_weekdays, payment_gateway_enabled, rental_open_time, rental_close_time",
         )
         .eq("outlet_id", asset.outlet_id)
         .limit(1)
@@ -258,6 +265,13 @@ export async function fetchBookingQuote(
     ]);
 
   const pricingRuleIds = (rules || []).map((rule) => rule.id);
+
+  if (isStoreClosedOnBookingDate(date, settings?.closed_weekdays)) {
+    throw new Error(
+      "Outlet tutup pada hari yang dipilih. Silakan pilih tanggal lain.",
+    );
+  }
+
   const { data: tiers, error: tiersError } = pricingRuleIds.length
     ? await supabase
         .from("rental_pricing_tiers")
