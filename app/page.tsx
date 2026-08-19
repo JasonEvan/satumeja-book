@@ -1,18 +1,16 @@
 import {
   getTables,
   getRates,
-  getVouchers,
   getStoreSettings,
 } from "@/lib/booking-service";
 import BookingForm from "./booking-form";
 
 export default async function Home() {
   // SSR: Fetch initial data from Supabase on the server
-  const [initialTables, initialRates, initialVouchers, initialStoreSettings] =
+  const [initialTables, initialRates, initialStoreSettings] =
     await Promise.all([
       getTables(),
       getRates(),
-      getVouchers(),
       getStoreSettings(),
     ]);
 
@@ -79,7 +77,6 @@ export default async function Home() {
       <BookingForm
         initialTables={initialTables}
         initialRates={initialRates}
-        initialVouchers={initialVouchers}
         initialStoreSettings={initialStoreSettings}
       />
     </main>

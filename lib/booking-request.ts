@@ -61,6 +61,7 @@ interface VoucherRow {
   code: string;
   discount_type: string;
   discount_value: number;
+  description: string | null;
   min_spend: number | null;
   max_discount_amount: number | null;
   start_date: string | null;
@@ -73,6 +74,14 @@ export interface BookingQuoteResult {
   totals: ReturnType<typeof calculateBookingTotals>;
   normalizedVoucherCode: string | null;
   paymentGatewayEnabled: boolean;
+  validatedVoucher: {
+    code: string;
+    type: "percent" | "flat";
+    value: number;
+    label: string;
+    startDate: string | null;
+    endDate: string | null;
+  } | null;
 }
 
 export function normalizeBookingPayload(body: CreateBookingPayload) {
@@ -196,8 +205,11 @@ function buildVoucherDiscount(
     );
   }
 
+  const isPercentage =
+    voucher.discount_type === "percentage" || voucher.discount_type === "percent";
+
   let amount =
-    voucher.discount_type === "percentage"
+    isPercentage
       ? subtotal * (Number(voucher.discount_value) / 100)
       : Number(voucher.discount_value);
 
@@ -207,11 +219,11 @@ function buildVoucherDiscount(
 
   return {
     type:
-      voucher.discount_type === "percentage"
+      isPercentage
         ? ("percent" as const)
         : ("flat" as const),
     value:
-      voucher.discount_type === "percentage"
+      isPercentage
         ? Number(voucher.discount_value)
         : Math.round(amount),
   };
@@ -255,7 +267,7 @@ export async function fetchBookingQuote(
         ? supabase
             .from("vouchers")
             .select(
-              "code, discount_type, discount_value, min_spend, max_discount_amount, start_date, end_date",
+              "code, discount_type, discount_value, description, min_spend, max_discount_amount, start_date, end_date",
             )
             .eq("code", voucherCode)
             .eq("is_active", true)
@@ -322,6 +334,23 @@ export async function fetchBookingQuote(
     normalizedVoucherCode: voucherCode,
     paymentGatewayEnabled:
       settings?.payment_gateway_enabled ?? DEFAULT_PAYMENT_GATEWAY_ENABLED,
+    validatedVoucher: vouchers
+      ? {
+          code: vouchers.code,
+          type:
+            vouchers.discount_type === "percentage" || vouchers.discount_type === "percent"
+              ? ("percent" as const)
+              : ("flat" as const),
+          value: Number(vouchers.discount_value),
+          label:
+            vouchers.description ||
+            (vouchers.discount_type === "percentage" || vouchers.discount_type === "percent"
+              ? `${vouchers.discount_value}% off`
+              : `Rp${vouchers.discount_value} off`),
+          startDate: vouchers.start_date,
+          endDate: vouchers.end_date,
+        }
+      : null,
   };
 }
 

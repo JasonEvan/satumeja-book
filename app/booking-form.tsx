@@ -51,14 +51,12 @@ async function getManualBookingResponsePayload(response: Response) {
 interface BookingFormProps {
   initialTables: TableItem[];
   initialRates: RatesData;
-  initialVouchers: Record<string, VoucherItem>;
   initialStoreSettings?: StoreSettingsData;
 }
 
 export default function BookingForm({
   initialTables,
   initialRates,
-  initialVouchers,
   initialStoreSettings,
 }: BookingFormProps) {
   const openingHour = initialStoreSettings?.openingHour ?? 10;
@@ -98,6 +96,7 @@ export default function BookingForm({
     text: string;
     type: "ok" | "err";
   } | null>(null);
+  const [isApplyingVoucher, setIsApplyingVoucher] = useState(false);
 
   const [consent, setConsent] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState<string | null>(null);
@@ -361,37 +360,66 @@ export default function BookingForm({
     }
   };
 
-  const handleApplyVoucher = () => {
+  const handleApplyVoucher = async () => {
     const code = voucherInput.trim().toUpperCase();
     if (!code) {
       setAppliedVoucher(null);
       setVoucherMsg(null);
       return;
     }
-    if (!date) {
+    const selectedItem = initialTables.find(
+      (table) => table.id === selectedTable || table.name === selectedTable,
+    );
+
+    if (!selectedItem?.id || !date || startHour === null || endHour === null) {
       setAppliedVoucher(null);
       setVoucherMsg({
-        text: "Pilih tanggal booking terlebih dahulu.",
+        text: "Pilih meja, tanggal, serta jam booking terlebih dahulu.",
         type: "err",
       });
       return;
     }
 
-    if (
-      initialVouchers[code] &&
-      isVoucherAvailableOn(initialVouchers[code], date)
-    ) {
-      setAppliedVoucher({ code, ...initialVouchers[code] });
+    setIsApplyingVoucher(true);
+    setVoucherMsg(null);
+
+    try {
+      const response = await fetch("/api/vouchers/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          assetId: String(selectedItem.id),
+          date,
+          startHour,
+          endHour,
+          voucherCode: code,
+        }),
+      });
+      const payload = (await response.json().catch(() => null)) as {
+        error?: string;
+        voucher?: NonNullable<typeof appliedVoucher>;
+      } | null;
+
+      if (!response.ok || !payload?.voucher) {
+        throw new Error(payload?.error || "Gagal memvalidasi voucher.");
+      }
+
+      setAppliedVoucher(payload.voucher);
       setVoucherMsg({
-        text: `Voucher "${code}" diterapkan — ${initialVouchers[code].label}`,
+        text: `Voucher "${payload.voucher.code}" diterapkan — ${payload.voucher.label}`,
         type: "ok",
       });
-    } else {
+    } catch (error) {
       setAppliedVoucher(null);
       setVoucherMsg({
-        text: "Kode voucher tidak berlaku untuk tanggal booking yang dipilih.",
+        text:
+          error instanceof Error
+            ? error.message
+            : "Gagal memvalidasi voucher.",
         type: "err",
       });
+    } finally {
+      setIsApplyingVoucher(false);
     }
   };
 
@@ -923,9 +951,10 @@ export default function BookingForm({
               type="button"
               id="applyVoucher"
               onClick={handleApplyVoucher}
-              className="bg-pine text-cream-2 border-none rounded-xl px-4 py-2.5 font-baloo font-semibold text-[13.5px] cursor-pointer whitespace-nowrap transition-colors duration-150 hover:bg-pine-2 shadow-xs"
+              disabled={isApplyingVoucher}
+              className="bg-pine text-cream-2 border-none rounded-xl px-4 py-2.5 font-baloo font-semibold text-[13.5px] cursor-pointer whitespace-nowrap transition-colors duration-150 hover:enabled:bg-pine-2 shadow-xs disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              Terapkan
+              {isApplyingVoucher ? "Memeriksa..." : "Terapkan"}
             </button>
           </div>
           <div
