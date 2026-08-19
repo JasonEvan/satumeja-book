@@ -16,6 +16,17 @@ function getJakartaDate(value: Date) {
   return jakartaDateFormatter.format(value);
 }
 
+function getVoucherCalendarDate(value: string) {
+  // Voucher dates are configured as calendar days. Keep the date portion as
+  // entered instead of converting a UTC timestamp into another calendar day.
+  const datePart = value.match(/^\d{4}-\d{2}-\d{2}/)?.[0];
+  return datePart || getJakartaDate(new Date(value));
+}
+
+export function isVoucherValidToday(voucher: VoucherValidityWindow) {
+  return isVoucherValidForBookingDate(voucher, getJakartaDate(new Date()));
+}
+
 export function isVoucherValidForBookingDate(
   voucher: VoucherValidityWindow,
   bookingDate: string,
@@ -25,10 +36,10 @@ export function isVoucherValidForBookingDate(
   }
 
   const startsOn = voucher.start_date
-    ? getJakartaDate(new Date(voucher.start_date))
+    ? getVoucherCalendarDate(voucher.start_date)
     : null;
   const endsOn = voucher.end_date
-    ? getJakartaDate(new Date(voucher.end_date))
+    ? getVoucherCalendarDate(voucher.end_date)
     : null;
 
   return (

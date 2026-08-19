@@ -5,7 +5,10 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { calculateBookingTotals } from "@/lib/booking-pricing";
 import type { RatesData, StoreSettingsData } from "@/lib/booking-types";
 import { isStoreClosedOnBookingDate } from "@/lib/store-closed-days";
-import { isVoucherValidForBookingDate } from "@/lib/voucher-validity";
+import {
+  isVoucherValidForBookingDate,
+  isVoucherValidToday,
+} from "@/lib/voucher-validity";
 import {
   DEFAULT_PAYMENT_GATEWAY_ENABLED,
   getPaymentGatewayEnabled,
@@ -195,6 +198,10 @@ function buildVoucherDiscount(
 
   if (!isVoucherValidForBookingDate(voucher, bookingDate)) {
     throw new Error("Voucher tidak berlaku untuk tanggal booking yang dipilih.");
+  }
+
+  if (!isVoucherValidToday(voucher)) {
+    throw new Error("Voucher sudah kedaluwarsa atau belum berlaku.");
   }
 
   const minSpend = Number(voucher.min_spend || 0);
