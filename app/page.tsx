@@ -37,48 +37,136 @@ export default async function Home() {
   };
 
   return (
-    <main className="w-full max-w-[560px]">
+    <main className="booking-page">
       {/* JSON-LD Structured Data */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      {/* Brand Header */}
-      <header className="text-center mb-5">
-        <div className="w-[44px] h-[44px] mx-auto mb-2 relative">
-          <div className="absolute inset-[10px] border-[4px] border-pine rounded-[6px]" />
-          <span className="absolute w-[12px] h-[12px] rounded-full bg-pine top-0 left-[12px]" />
-          <span className="absolute w-[12px] h-[12px] rounded-full bg-red top-0 right-[12px]" />
-          <span className="absolute w-[12px] h-[12px] rounded-full bg-gold-soft bottom-0 left-[12px]" />
-          <span className="absolute w-[12px] h-[12px] rounded-full bg-gold bottom-0 right-[12px]" />
-        </div>
-        <h1 className="font-baloo font-extrabold tracking-[0.06em] text-pine text-[22px] m-0 mb-[2px]">
-          SATU MEJA
-        </h1>
-        <p className="m-0 text-muted text-[13px] tracking-[0.04em]">
-          Social Mahjong &amp; Game Club
-        </p>
+      <div className="booking-page__pattern" aria-hidden="true" />
+
+      <header className="site-header">
+        <a className="brand" href="#top" aria-label="Satu Meja — kembali ke atas">
+          <span className="brand-mark" aria-hidden="true">
+            <span className="brand-mark__frame" />
+            <span className="brand-mark__dot brand-mark__dot--one" />
+            <span className="brand-mark__dot brand-mark__dot--two" />
+            <span className="brand-mark__dot brand-mark__dot--three" />
+            <span className="brand-mark__dot brand-mark__dot--four" />
+          </span>
+          <span>
+            <strong>SATU MEJA</strong>
+            <small>Social Mahjong &amp; Game Club</small>
+          </span>
+        </a>
+
+        <a className="header-location" href="#booking-form">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 21s7-5.5 7-12A7 7 0 1 0 5 9c0 6.5 7 12 7 12Z" />
+            <circle cx="12" cy="9" r="2.25" />
+          </svg>
+          <span>
+            <small>Semarang</small>
+            <strong>Jl. Moch. Suyudi No. 71</strong>
+          </span>
+        </a>
       </header>
 
-      {/* Hero Section */}
-      <section className="text-center mb-[22px]" aria-label="Informasi Venue">
-        <h2 className="font-baloo font-extrabold text-[44px] max-[380px]:text-[34px] text-pine [-webkit-text-stroke:1.5px_var(--color-gold-soft)] mt-[14px] mb-[2px] leading-none">
-          BOOKING
-        </h2>
-        <div>
-          <span className="inline-block bg-pine text-cream-2 font-baloo font-semibold text-[13px] px-[18px] py-[6px] rounded-full tracking-[0.03em]">
-            Jl. Moch. Suyudi No. 71, Semarang · {openingHoursText.replace("-", " – ")}
+      <section className="hero" id="top" aria-labelledby="hero-title">
+        <div className="hero__copy">
+          <span className="eyebrow">
+            <span aria-hidden="true" /> Reservasi online
           </span>
+          <h1 id="hero-title">
+            Your table,<br />
+            <em>your good time.</em>
+          </h1>
+          <p>
+            Pilih meja favoritmu, tentukan waktu bermain, dan nikmati momen
+            seru bersama orang-orang terdekat.
+          </p>
+          <div className="hero__details" aria-label="Informasi venue">
+            <span>
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 7v5l3.5 2" />
+              </svg>
+              Buka setiap hari, {openingHoursText.replace("-", " – ")} WIB
+            </span>
+            <span>
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M7 4h10v16H7zM10 8h4M10 12h4M10 16h2" />
+              </svg>
+              Booking langsung terkonfirmasi
+            </span>
+          </div>
+          <a className="hero__cta" href="#booking-form">
+            Mulai booking
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="m9 18 6-6-6-6" />
+            </svg>
+          </a>
+        </div>
+
+        <div className="hero__art" aria-hidden="true">
+          <div className="hero__sun" />
+          <div className="hero__tile hero__tile--bamboo">
+            <span>一</span><span>二</span><span>三</span>
+          </div>
+          <div className="hero__tile hero__tile--character">中</div>
+          <div className="hero__tile hero__tile--circle">
+            {Array.from({ length: 9 }).map((_, index) => (
+              <span key={index} />
+            ))}
+          </div>
+          <div className="hero__table">
+            <div className="hero__table-top">
+              <span className="hero__table-center">發</span>
+            </div>
+            <span className="hero__table-leg hero__table-leg--left" />
+            <span className="hero__table-leg hero__table-leg--right" />
+          </div>
+          <span className="hero__spark hero__spark--one">✦</span>
+          <span className="hero__spark hero__spark--two">✦</span>
+          <span className="hero__spark hero__spark--three">✦</span>
         </div>
       </section>
 
+      <section className="booking-intro" aria-labelledby="booking-heading">
+        <div>
+          <span className="section-number">01</span>
+          <p className="eyebrow">Buat reservasi</p>
+          <h2 id="booking-heading">Siapkan meja untuk momenmu.</h2>
+        </div>
+        <p>
+          Isi detail di bawah ini. Hanya perlu beberapa langkah sederhana sampai
+          mejamu siap.
+        </p>
+      </section>
+
       {/* Interactive Booking Form Pre-rendered with Server Data */}
-      <BookingForm
-        initialTables={initialTables}
-        initialRates={initialRates}
-        initialStoreSettings={initialStoreSettings}
-      />
+      <div id="booking-form">
+        <BookingForm
+          initialTables={initialTables}
+          initialRates={initialRates}
+          initialStoreSettings={initialStoreSettings}
+        />
+      </div>
+
+      <footer className="site-footer">
+        <div className="brand brand--footer">
+          <span className="brand-mark" aria-hidden="true">
+            <span className="brand-mark__frame" />
+            <span className="brand-mark__dot brand-mark__dot--one" />
+            <span className="brand-mark__dot brand-mark__dot--two" />
+            <span className="brand-mark__dot brand-mark__dot--three" />
+            <span className="brand-mark__dot brand-mark__dot--four" />
+          </span>
+          <span><strong>SATU MEJA</strong><small>Play. Connect. Belong.</small></span>
+        </div>
+        <p>© {new Date().getFullYear()} Satu Meja · Semarang</p>
+      </footer>
     </main>
   );
 }

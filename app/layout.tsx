@@ -30,7 +30,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="id" className={`${baloo2.variable} ${inter.variable}`}>
-      <body className="m-0 min-h-screen bg-[radial-gradient(circle_at_8%_6%,rgba(243,196,206,0.35),transparent_40%),radial-gradient(circle_at_92%_90%,rgba(243,196,206,0.3),transparent_38%),var(--color-cream)] font-inter text-ink flex justify-center pt-8 px-4 pb-16">
+      <body className="m-0 min-h-screen bg-cream font-inter text-ink">
         {children}
       </body>
     </html>

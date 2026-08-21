@@ -684,11 +684,10 @@ export default function BookingForm({
   };
 
   return (
-    <section aria-label="Form Booking Mahjong">
-      {/* Card Form */}
-      <div className="bg-cream-2 border-2 border-pine rounded-3xl p-6 relative shadow-[0_10px_0_-4px_rgba(27,58,43,0.08),0_18px_40px_-20px_rgba(27,58,43,0.35)] before:content-[''] before:absolute before:top-1.5 before:right-1.5 before:bottom-1.5 before:left-1.5 before:border before:border-dashed before:border-gold before:rounded-[19px] before:pointer-events-none before:opacity-55">
+    <section className="booking-workspace" aria-label="Form Booking Mahjong">
+      <div className="booking-alerts" aria-live="polite">
         {bookingSuccess && (
-          <div className="bg-pine text-cream-2 rounded-2xl p-4 mb-4 text-[13.5px] leading-normal shadow-sm">
+          <div className="booking-alert booking-alert--success">
             <b className="font-baloo text-base">Booking terkonfirmasi!</b>
             <br />
             <span>{bookingSuccess}</span>
@@ -696,7 +695,7 @@ export default function BookingForm({
         )}
 
         {bookingError && (
-          <div className="bg-red text-cream-2 rounded-2xl p-4 mb-4 text-[13.5px] leading-normal shadow-sm">
+          <div className="booking-alert booking-alert--error">
             <b className="font-baloo text-base">Booking Gagal</b>
             <br />
             <span>{bookingError}</span>
@@ -704,18 +703,31 @@ export default function BookingForm({
         )}
 
         {bookingPending && (
-          <div className="bg-gold text-pine rounded-2xl p-4 mb-4 text-[13.5px] leading-normal shadow-sm">
+          <div className="booking-alert booking-alert--pending">
             <b className="font-baloo text-base">Menunggu Pembayaran</b>
             <br />
             <span>{bookingPending}</span>
           </div>
         )}
+      </div>
+
+      <div className="booking-layout">
+        <div className="booking-card booking-card--form">
+          <div className="form-section-heading">
+            <span className="form-step">1</span>
+            <div>
+              <p>Detail pemesan</p>
+              <h3>Kenalan dulu, yuk.</h3>
+            </div>
+          </div>
+
+          <div className="customer-fields">
 
         {/* Nama */}
-        <div className="mb-4">
+        <div className="form-field">
           <label
             htmlFor="name"
-            className="block font-baloo font-semibold text-[13.5px] text-pine mb-1.5 tracking-wide"
+            className="form-label"
           >
             Nama
           </label>
@@ -725,15 +737,15 @@ export default function BookingForm({
             placeholder="Nama lengkap"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full bg-white border-[1.5px] border-[#d8cfa9] rounded-xl px-3.5 py-2.5 font-inter text-[14px] text-ink outline-none transition-all duration-150 appearance-none focus:border-pine focus:ring-2 focus:ring-pine/15 placeholder:text-[#b9b09a]"
+            className="form-control"
           />
         </div>
 
         {/* Nomor HP */}
-        <div className="mb-4">
+        <div className="form-field">
           <label
             htmlFor="phone"
-            className="block font-baloo font-semibold text-[13.5px] text-pine mb-1.5 tracking-wide"
+            className="form-label"
           >
             Nomor HP
           </label>
@@ -743,15 +755,25 @@ export default function BookingForm({
             placeholder="08xxxxxxxxxx"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
-            className="w-full bg-white border-[1.5px] border-[#d8cfa9] rounded-xl px-3.5 py-2.5 font-inter text-[14px] text-ink outline-none transition-all duration-150 appearance-none focus:border-pine focus:ring-2 focus:ring-pine/15 placeholder:text-[#b9b09a]"
+            className="form-control"
           />
         </div>
+          </div>
+
+          <div className="form-divider" />
+          <div className="form-section-heading">
+            <span className="form-step">2</span>
+            <div>
+              <p>Jadwal bermain</p>
+              <h3>Pilih tempat &amp; waktumu.</h3>
+            </div>
+          </div>
 
         {/* Tanggal */}
-        <div className="mb-4">
+        <div className="form-field">
           <label
             htmlFor="date"
-            className="block font-baloo font-semibold text-[13.5px] text-pine mb-1.5 tracking-wide"
+            className="form-label"
           >
             Tanggal{" "}
             <span className="font-normal text-muted text-xs ml-1">(WIB)</span>
@@ -777,7 +799,7 @@ export default function BookingForm({
               setReservedHours(new Set());
               resetTimeSelection();
             }}
-            className="w-full bg-white border-[1.5px] border-[#d8cfa9] rounded-xl px-3.5 py-2.5 font-inter text-[14px] text-ink outline-none transition-all duration-150 appearance-none focus:border-pine focus:ring-2 focus:ring-pine/15 placeholder:text-[#b9b09a]"
+            className="form-control"
           />
           {isStoreClosed && (
             <p className="mt-2 mb-0 rounded-xl border border-red/30 bg-red/10 px-3 py-2 text-[12.5px] font-semibold text-red">
@@ -787,8 +809,8 @@ export default function BookingForm({
         </div>
 
         {/* Meja / Asset Grid */}
-        <div className="mb-4">
-          <label className="block font-baloo font-semibold text-[13.5px] text-pine mb-1.5 tracking-wide">
+        <div className="form-field">
+          <label className="form-label">
             Pilih Meja / Unit{" "}
             {!date && (
               <span className="font-normal text-muted text-xs ml-1">
@@ -796,7 +818,7 @@ export default function BookingForm({
               </span>
             )}
           </label>
-          <div className="grid grid-cols-3 sm:grid-cols-6 gap-2" id="tableGrid">
+          <div className="table-grid" id="tableGrid">
             {initialTables.map((t) => {
               const isDateSelected = date !== "";
               const isTableUnavailable = !isDateSelected || isStoreClosed;
@@ -805,17 +827,17 @@ export default function BookingForm({
                 (selectedTable === t.id || selectedTable === t.name);
 
               let btnClass =
-                "min-h-[44px] rounded-xl border-[1.5px] font-baloo font-bold text-xs sm:text-sm p-2 text-center leading-tight break-words transition-all duration-150 flex items-center justify-center";
+                "table-option";
 
               if (isTableUnavailable) {
                 btnClass +=
-                  " bg-[#eae5d8] border-[#d8cfa9] text-[#a09885] cursor-not-allowed opacity-75";
+                  " table-option--disabled";
               } else if (isActive) {
                 btnClass +=
-                  " bg-pine border-pine text-cream-2 shadow-[0_3px_0_0_rgba(27,58,43,0.3)] cursor-pointer";
+                  " table-option--active";
               } else {
                 btnClass +=
-                  " bg-white border-[#d8cfa9] text-pine hover:border-gold cursor-pointer";
+                  " table-option--idle";
               }
 
               return (
@@ -845,15 +867,15 @@ export default function BookingForm({
         </div>
 
         {/* Pilih Jam */}
-        <div className="mb-4">
-          <label className="block font-baloo font-semibold text-[13.5px] text-pine mb-1.5 tracking-wide">
+        <div className="form-field">
+          <label className="form-label">
             Pilih Jam{" "}
             <span className="font-normal text-muted text-xs ml-1">
               (klik jam mulai, lalu jam selesai)
             </span>
           </label>
           <div
-            className="grid grid-cols-4 max-[380px]:grid-cols-3 gap-2"
+            className="time-grid"
             id="timeGrid"
           >
             {hours.map((h) => {
@@ -880,20 +902,20 @@ export default function BookingForm({
                 (isReserved && !canUseAsEndBoundary);
 
               let btnClass =
-                "py-2 px-1 rounded-xl border-[1.5px] border-[#d8cfa9] font-inter font-semibold text-[12.5px] text-center transition-all duration-150";
+                "time-option";
 
               if (isDisabled) {
                 btnClass +=
-                  " !bg-[#eae5d8] !border-[#d8cfa9] !text-[#a09885] !cursor-not-allowed opacity-75" +
+                  " time-option--disabled" +
                   (isReserved ? " line-through" : "");
               } else if (isStart || isEnd) {
                 btnClass +=
-                  " !bg-gold !border-gold !text-pine font-bold shadow-xs cursor-pointer";
+                  " time-option--edge";
               } else if (inRange) {
-                btnClass += " !bg-gold-soft !border-gold cursor-pointer";
+                btnClass += " time-option--range";
               } else {
                 btnClass +=
-                  " bg-white text-ink cursor-pointer hover:border-gold";
+                  " time-option--idle";
               }
 
               const tooltip = !isTableSelected
@@ -922,16 +944,16 @@ export default function BookingForm({
               );
             })}
           </div>
-          <div className="text-[11.5px] text-muted mt-1.5" id="timeHint">
+          <div className="time-hint" id="timeHint">
             {getTimeHintText()}
           </div>
         </div>
 
         {/* Kode Voucher */}
-        <div className="mb-4">
+        <div className="voucher-field">
           <label
             htmlFor="voucher"
-            className="block font-baloo font-semibold text-[13.5px] text-pine mb-1.5 tracking-wide"
+            className="form-label"
           >
             Kode Voucher{" "}
             <span className="font-normal text-muted text-xs ml-1">
@@ -945,14 +967,14 @@ export default function BookingForm({
               placeholder="Masukkan kode"
               value={voucherInput}
               onChange={(e) => setVoucherInput(e.target.value)}
-              className="flex-1 bg-white border-[1.5px] border-[#d8cfa9] rounded-xl px-3.5 py-2.5 font-inter text-[14px] text-ink outline-none transition-all duration-150 appearance-none focus:border-pine focus:ring-2 focus:ring-pine/15 placeholder:text-[#b9b09a]"
+              className="form-control"
             />
             <button
               type="button"
               id="applyVoucher"
               onClick={handleApplyVoucher}
               disabled={isApplyingVoucher}
-              className="bg-pine text-cream-2 border-none rounded-xl px-4 py-2.5 font-baloo font-semibold text-[13.5px] cursor-pointer whitespace-nowrap transition-colors duration-150 hover:enabled:bg-pine-2 shadow-xs disabled:opacity-60 disabled:cursor-not-allowed"
+              className="voucher-button"
             >
               {isApplyingVoucher ? "Memeriksa..." : "Terapkan"}
             </button>
@@ -970,14 +992,20 @@ export default function BookingForm({
             {voucherMsg?.text || ""}
           </div>
         </div>
-
-        {/* Ribbon */}
-        <div className="bg-pine text-cream-2 text-center font-baloo font-bold text-[13px] tracking-wider py-2 px-4 rounded-full mt-5 mb-3.5 shadow-xs">
-          RINGKASAN PESANAN
         </div>
 
+        {/* Ribbon */}
+        <aside className="booking-card booking-card--summary">
+          <div className="summary-heading">
+            <span className="form-step form-step--gold">3</span>
+            <div>
+              <p>Ringkasan pesanan</p>
+              <h3>Hampir selesai!</h3>
+            </div>
+          </div>
+
         {/* Summary Box */}
-        <div className="border-[1.5px] border-dashed border-gold rounded-2xl p-4 bg-[#fffdf5]">
+        <div className="summary-box">
           <div className="flex justify-between items-center text-[13.5px] py-1.5 text-ink">
             <span className="text-muted">Meja</span>
             <span id="sumTable" className="font-semibold text-pine">
@@ -1070,7 +1098,7 @@ export default function BookingForm({
         </div>
 
         {/* Consent */}
-        <div className="flex items-start gap-2.5 mt-4 mb-2">
+        <div className="consent-row">
           <input
             type="checkbox"
             id="consent"
@@ -1212,7 +1240,7 @@ export default function BookingForm({
           id="submitBtn"
           disabled={!isFormValid || isSubmitting}
           onClick={handleSubmit}
-          className="w-full bg-gold text-pine border-none rounded-2xl py-3.5 px-4 font-baloo font-bold text-xl tracking-wide cursor-pointer mt-2 transition-all duration-150 shadow-[0_4px_0_0_#a9843a] hover:enabled:bg-gold-soft active:enabled:translate-y-0.5 active:enabled:shadow-[0_2px_0_0_#a9843a] disabled:opacity-45 disabled:cursor-not-allowed disabled:shadow-none"
+          className="booking-submit"
         >
           {isSubmitting
             ? "Memproses..."
@@ -1221,10 +1249,11 @@ export default function BookingForm({
               : "Bayar & Konfirmasi Booking"}
         </button>
 
-        <p className="text-center text-[11.5px] text-muted mt-4">
+        <p className="booking-footnote">
           Harga mengikuti tarif weekday (Sen–Kam) &amp; weekend/libur nasional
           (Jum–Min) yang berlaku.
         </p>
+        </aside>
       </div>
     </section>
   );

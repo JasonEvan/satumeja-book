@@ -148,6 +148,7 @@ function getStatusBadgeColors(bucket: BookingFilter): React.CSSProperties {
 const shellStyle: React.CSSProperties = {
   width: "100%",
   maxWidth: "560px",
+  margin: "32px auto 64px",
 };
 
 const cardStyle: React.CSSProperties = {
