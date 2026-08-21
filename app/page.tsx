@@ -46,17 +46,14 @@ export default async function Home() {
           href="#top"
           aria-label="Satu Meja — kembali ke atas"
         >
-          <span className="brand-mark" aria-hidden="true">
-            <span className="brand-mark__frame" />
-            <span className="brand-mark__dot brand-mark__dot--one" />
-            <span className="brand-mark__dot brand-mark__dot--two" />
-            <span className="brand-mark__dot brand-mark__dot--three" />
-            <span className="brand-mark__dot brand-mark__dot--four" />
-          </span>
-          <span>
-            <strong>SATU MEJA</strong>
-            <small>Social Mahjong &amp; Game Club</small>
-          </span>
+          <Image
+            className="brand-logo"
+            src="/icon.webp"
+            alt=""
+            width={707}
+            height={353}
+            sizes="(max-width: 520px) 148px, 178px"
+          />
         </a>
 
         <a className="header-location" href="#booking-form">
@@ -145,19 +142,16 @@ export default async function Home() {
 
       <footer className="site-footer">
         <div className="brand brand--footer">
-          <span className="brand-mark" aria-hidden="true">
-            <span className="brand-mark__frame" />
-            <span className="brand-mark__dot brand-mark__dot--one" />
-            <span className="brand-mark__dot brand-mark__dot--two" />
-            <span className="brand-mark__dot brand-mark__dot--three" />
-            <span className="brand-mark__dot brand-mark__dot--four" />
-          </span>
-          <span>
-            <strong>SATU MEJA</strong>
-            <small>Play. Connect. Belong.</small>
-          </span>
+          <Image
+            className="brand-logo"
+            src="/icon.webp"
+            alt="Satu Meja — Social Mahjong & Game Club"
+            width={707}
+            height={353}
+            sizes="(max-width: 520px) 144px, 162px"
+          />
         </div>
-        <p>© {new Date().getFullYear()} Satu Meja · Semarang</p>
+        <p>© {new Date().getFullYear()} FlowPOS · Semarang</p>
       </footer>
     </main>
   );
