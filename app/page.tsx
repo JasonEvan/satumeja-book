@@ -1,18 +1,12 @@
-import {
-  getTables,
-  getRates,
-  getStoreSettings,
-} from "@/lib/booking-service";
+import { getTables, getRates, getStoreSettings } from "@/lib/booking-service";
+import Image from "next/image";
 import BookingForm from "./booking-form";
 
 export default async function Home() {
   // SSR: Fetch initial data from Supabase on the server
-  const [initialTables, initialRates, initialStoreSettings] =
-    await Promise.all([
-      getTables(),
-      getRates(),
-      getStoreSettings(),
-    ]);
+  const [initialTables, initialRates, initialStoreSettings] = await Promise.all(
+    [getTables(), getRates(), getStoreSettings()],
+  );
 
   // Structured Data (JSON-LD) for LocalBusiness SEO
   const openingHoursText = `${String(initialStoreSettings.openingHour).padStart(
@@ -47,7 +41,11 @@ export default async function Home() {
       <div className="booking-page__pattern" aria-hidden="true" />
 
       <header className="site-header">
-        <a className="brand" href="#top" aria-label="Satu Meja — kembali ke atas">
+        <a
+          className="brand"
+          href="#top"
+          aria-label="Satu Meja — kembali ke atas"
+        >
           <span className="brand-mark" aria-hidden="true">
             <span className="brand-mark__frame" />
             <span className="brand-mark__dot brand-mark__dot--one" />
@@ -79,12 +77,13 @@ export default async function Home() {
             <span aria-hidden="true" /> Reservasi online
           </span>
           <h1 id="hero-title">
-            Your table,<br />
+            Your table,
+            <br />
             <em>your good time.</em>
           </h1>
           <p>
-            Pilih meja favoritmu, tentukan waktu bermain, dan nikmati momen
-            seru bersama orang-orang terdekat.
+            Pilih meja favoritmu, tentukan waktu bermain, dan nikmati momen seru
+            bersama orang-orang terdekat.
           </p>
           <div className="hero__details" aria-label="Informasi venue">
             <span>
@@ -110,26 +109,16 @@ export default async function Home() {
         </div>
 
         <div className="hero__art" aria-hidden="true">
-          <div className="hero__sun" />
-          <div className="hero__tile hero__tile--bamboo">
-            <span>一</span><span>二</span><span>三</span>
-          </div>
-          <div className="hero__tile hero__tile--character">中</div>
-          <div className="hero__tile hero__tile--circle">
-            {Array.from({ length: 9 }).map((_, index) => (
-              <span key={index} />
-            ))}
-          </div>
-          <div className="hero__table">
-            <div className="hero__table-top">
-              <span className="hero__table-center">發</span>
-            </div>
-            <span className="hero__table-leg hero__table-leg--left" />
-            <span className="hero__table-leg hero__table-leg--right" />
-          </div>
-          <span className="hero__spark hero__spark--one">✦</span>
-          <span className="hero__spark hero__spark--two">✦</span>
-          <span className="hero__spark hero__spark--three">✦</span>
+          <Image
+            className="hero__illustration"
+            src="/vector-transparent.png"
+            loading="eager"
+            alt=""
+            width={1254}
+            height={1254}
+            sizes="(max-width: 520px) 320px, (max-width: 760px) 350px, (max-width: 980px) 46vw, 620px"
+            fetchPriority="high"
+          />
         </div>
       </section>
 
@@ -163,7 +152,10 @@ export default async function Home() {
             <span className="brand-mark__dot brand-mark__dot--three" />
             <span className="brand-mark__dot brand-mark__dot--four" />
           </span>
-          <span><strong>SATU MEJA</strong><small>Play. Connect. Belong.</small></span>
+          <span>
+            <strong>SATU MEJA</strong>
+            <small>Play. Connect. Belong.</small>
+          </span>
         </div>
         <p>© {new Date().getFullYear()} Satu Meja · Semarang</p>
       </footer>
