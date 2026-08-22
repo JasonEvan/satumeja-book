@@ -151,7 +151,16 @@ export default async function Home() {
             sizes="(max-width: 520px) 144px, 162px"
           />
         </div>
-        <p>© {new Date().getFullYear()} FlowPOS · Semarang</p>
+        <div className="site-footer__details">
+          <p>© {new Date().getFullYear()} FlowPOS · Semarang</p>
+          <a
+            href="https://wa.me/62895413315500"
+            target="_blank"
+            rel="noreferrer"
+          >
+            WhatsApp: +62 895-4133-15500
+          </a>
+        </div>
       </footer>
     </main>
   );
