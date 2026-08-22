@@ -907,7 +907,7 @@ body {
   .hero__art { position: absolute; right: 0; bottom: 0; left: 0; min-height: 315px; pointer-events: none; }
   .hero__art::before { right: 50%; width: 390px; transform: translate(50%, -44%); }
   .hero__art::after { inset: 16px 12% -64px; }
-  .hero__illustration { top: auto; right: 50%; bottom: -34px; width: min(350px, 84vw); transform: translateX(50%) rotate(0.5deg); animation-name: hero-art-float-mobile; }
+  .hero__illustration { top: auto; right: 50%; bottom: 0; width: min(350px, 84vw); transform: translateX(50%) rotate(0.5deg); animation-name: hero-art-float-mobile; }
   .booking-intro { padding: 74px 8px 32px; flex-direction: column; align-items: flex-start; }
   .booking-intro > div { padding-left: 44px; }
   .booking-intro > p { padding-left: 44px; }
@@ -923,7 +923,7 @@ body {
   .hero h1 { font-size: 48px; }
   .hero__details span:nth-child(2) { display: none; }
   .hero__art { min-height: 300px; }
-  .hero__illustration { bottom: -22px; width: min(320px, 88vw); }
+  .hero__illustration { bottom: 0; width: min(320px, 88vw); }
   .booking-intro h2 { font-size: 34px; }
   .booking-intro > p { padding-left: 0; }
   .booking-card { border-radius: 24px; }

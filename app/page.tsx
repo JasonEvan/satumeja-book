@@ -111,8 +111,8 @@ export default async function Home() {
             src="/vector-transparent.png"
             loading="eager"
             alt=""
-            width={1254}
-            height={1254}
+            width={1317}
+            height={1194}
             sizes="(max-width: 520px) 320px, (max-width: 760px) 350px, (max-width: 980px) 46vw, 620px"
             fetchPriority="high"
           />
