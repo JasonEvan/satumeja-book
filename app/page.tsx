@@ -88,7 +88,8 @@ export default async function Home() {
                 <circle cx="12" cy="12" r="9" />
                 <path d="M12 7v5l3.5 2" />
               </svg>
-              Buka setiap hari, {openingHoursText.replace("-", " – ")} WIB
+              Buka setiap hari (kecuali Senin),{" "}
+              {openingHoursText.replace("-", " – ")} WIB
             </span>
             <span>
               <svg viewBox="0 0 24 24" aria-hidden="true">
