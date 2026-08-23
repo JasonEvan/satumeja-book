@@ -942,7 +942,7 @@ body {
   .voucher-field > div:first-of-type { flex-direction: column; }
   .voucher-button { width: 100%; }
   .site-footer { min-height: 150px; padding: 28px 0; flex-direction: column; align-items: flex-start; justify-content: center; gap: 22px; }
-  .site-footer__details { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .site-footer__details { width: 100%; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
 }
 
 @media (prefers-reduced-motion: reduce) {
