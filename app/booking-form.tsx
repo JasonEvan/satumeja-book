@@ -413,9 +413,7 @@ export default function BookingForm({
       setAppliedVoucher(null);
       setVoucherMsg({
         text:
-          error instanceof Error
-            ? error.message
-            : "Gagal memvalidasi voucher.",
+          error instanceof Error ? error.message : "Gagal memvalidasi voucher.",
         type: "err",
       });
     } finally {
@@ -722,42 +720,35 @@ export default function BookingForm({
           </div>
 
           <div className="customer-fields">
+            {/* Nama */}
+            <div className="form-field">
+              <label htmlFor="name" className="form-label">
+                Nama
+              </label>
+              <input
+                type="text"
+                id="name"
+                placeholder="Nama lengkap"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="form-control"
+              />
+            </div>
 
-        {/* Nama */}
-        <div className="form-field">
-          <label
-            htmlFor="name"
-            className="form-label"
-          >
-            Nama
-          </label>
-          <input
-            type="text"
-            id="name"
-            placeholder="Nama lengkap"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="form-control"
-          />
-        </div>
-
-        {/* Nomor HP */}
-        <div className="form-field">
-          <label
-            htmlFor="phone"
-            className="form-label"
-          >
-            Nomor HP
-          </label>
-          <input
-            type="tel"
-            id="phone"
-            placeholder="08xxxxxxxxxx"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            className="form-control"
-          />
-        </div>
+            {/* Nomor HP */}
+            <div className="form-field">
+              <label htmlFor="phone" className="form-label">
+                Nomor HP
+              </label>
+              <input
+                type="tel"
+                id="phone"
+                placeholder="08xxxxxxxxxx"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="form-control"
+              />
+            </div>
           </div>
 
           <div className="form-divider" />
@@ -769,229 +760,213 @@ export default function BookingForm({
             </div>
           </div>
 
-        {/* Tanggal */}
-        <div className="form-field">
-          <label
-            htmlFor="date"
-            className="form-label"
-          >
-            Tanggal{" "}
-            <span className="font-normal text-muted text-xs ml-1">(WIB)</span>
-          </label>
-          <input
-            type="date"
-            id="date"
-            min={minDate}
-            value={date}
-            onChange={(e) => {
-              const nextDate = e.target.value;
-              setDate(nextDate);
-              if (
-                appliedVoucher &&
-                !isVoucherAvailableOn(appliedVoucher, nextDate)
-              ) {
-                setAppliedVoucher(null);
-                setVoucherMsg({
-                  text: "Voucher tidak berlaku untuk tanggal booking yang dipilih.",
-                  type: "err",
-                });
-              }
-              setReservedHours(new Set());
-              resetTimeSelection();
-            }}
-            className="form-control"
-          />
-          {isStoreClosed && (
-            <p className="mt-2 mb-0 rounded-xl border border-red/30 bg-red/10 px-3 py-2 text-[12.5px] font-semibold text-red">
-              Outlet tutup pada tanggal yang dipilih. Booking tidak tersedia.
-            </p>
-          )}
-        </div>
-
-        {/* Meja / Asset Grid */}
-        <div className="form-field">
-          <label className="form-label">
-            Pilih Meja / Unit{" "}
-            {!date && (
-              <span className="font-normal text-muted text-xs ml-1">
-                (pilih tanggal terlebih dahulu)
-              </span>
-            )}
-          </label>
-          <div className="table-grid" id="tableGrid">
-            {initialTables.map((t) => {
-              const isDateSelected = date !== "";
-              const isTableUnavailable = !isDateSelected || isStoreClosed;
-              const isActive =
-                isDateSelected &&
-                (selectedTable === t.id || selectedTable === t.name);
-
-              let btnClass =
-                "table-option";
-
-              if (isTableUnavailable) {
-                btnClass +=
-                  " table-option--disabled";
-              } else if (isActive) {
-                btnClass +=
-                  " table-option--active";
-              } else {
-                btnClass +=
-                  " table-option--idle";
-              }
-
-              return (
-                <button
-                  key={t.id}
-                  type="button"
-                  disabled={isTableUnavailable}
-                  onClick={() => {
-                    setSelectedTable(t.id);
-                    setReservedHours(new Set());
-                    resetTimeSelection();
-                  }}
-                  className={btnClass}
-                  title={
-                    !isDateSelected
-                      ? "Silakan pilih tanggal terlebih dahulu"
-                      : isStoreClosed
-                        ? "Outlet tutup pada tanggal yang dipilih"
-                      : undefined
-                  }
-                >
-                  {t.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Pilih Jam */}
-        <div className="form-field">
-          <label className="form-label">
-            Pilih Jam{" "}
-            <span className="font-normal text-muted text-xs ml-1">
-              (klik jam mulai, lalu jam selesai)
-            </span>
-          </label>
-          <div
-            className="time-grid"
-            id="timeGrid"
-          >
-            {hours.map((h) => {
-              const isTableSelected = selectedTable !== null;
-              const isReserved = activeReservedHours.has(h);
-              const isPast = isPastHour(h);
-              const isStart = startHour === h;
-              const isEnd = endHour === h;
-              const inRange =
-                startHour !== null &&
-                endHour !== null &&
-                h > startHour &&
-                h < endHour;
-              const canUseAsEndBoundary =
-                isTableSelected &&
-                startHour !== null &&
-                endHour === null &&
-                h > startHour &&
-                isRangeAvailable(startHour, h);
-              const isDisabled =
-                !isTableSelected ||
-                isStoreClosed ||
-                isPast ||
-                (isReserved && !canUseAsEndBoundary);
-
-              let btnClass =
-                "time-option";
-
-              if (isDisabled) {
-                btnClass +=
-                  " time-option--disabled" +
-                  (isReserved ? " line-through" : "");
-              } else if (isStart || isEnd) {
-                btnClass +=
-                  " time-option--edge";
-              } else if (inRange) {
-                btnClass += " time-option--range";
-              } else {
-                btnClass +=
-                  " time-option--idle";
-              }
-
-              const tooltip = !isTableSelected
-                ? "Silakan pilih meja terlebih dahulu"
-                : isStoreClosed
-                  ? "Outlet tutup pada tanggal yang dipilih"
-                : isPast
-                  ? "Jam ini sudah lewat"
-                  : canUseAsEndBoundary
-                    ? "Jam ini bisa dipilih sebagai batas akhir booking"
-                    : isReserved
-                      ? "Meja/Unit ini sudah dipesan pada jam ini"
-                      : undefined;
-
-              return (
-                <button
-                  key={h}
-                  type="button"
-                  disabled={isDisabled}
-                  onClick={() => handleTimeClick(h)}
-                  className={btnClass}
-                  title={tooltip}
-                >
-                  {fmtHour(h)}
-                </button>
-              );
-            })}
-          </div>
-          <div className="time-hint" id="timeHint">
-            {getTimeHintText()}
-          </div>
-        </div>
-
-        {/* Kode Voucher */}
-        <div className="voucher-field">
-          <label
-            htmlFor="voucher"
-            className="form-label"
-          >
-            Kode Voucher{" "}
-            <span className="font-normal text-muted text-xs ml-1">
-              (opsional)
-            </span>
-          </label>
-          <div className="flex gap-2">
+          {/* Tanggal */}
+          <div className="form-field">
+            <label htmlFor="date" className="form-label">
+              Tanggal{" "}
+              <span className="font-normal text-muted text-xs ml-1">(WIB)</span>
+            </label>
             <input
-              type="text"
-              id="voucher"
-              placeholder="Masukkan kode"
-              value={voucherInput}
-              onChange={(e) => setVoucherInput(e.target.value)}
+              type="date"
+              id="date"
+              min={minDate}
+              value={date}
+              onChange={(e) => {
+                const nextDate = e.target.value;
+                setDate(nextDate);
+                if (
+                  appliedVoucher &&
+                  !isVoucherAvailableOn(appliedVoucher, nextDate)
+                ) {
+                  setAppliedVoucher(null);
+                  setVoucherMsg({
+                    text: "Voucher tidak berlaku untuk tanggal booking yang dipilih.",
+                    type: "err",
+                  });
+                }
+                setReservedHours(new Set());
+                resetTimeSelection();
+              }}
               className="form-control"
             />
-            <button
-              type="button"
-              id="applyVoucher"
-              onClick={handleApplyVoucher}
-              disabled={isApplyingVoucher}
-              className="voucher-button"
+            {isStoreClosed && (
+              <p className="mt-2 mb-0 rounded-xl border border-red/30 bg-red/10 px-3 py-2 text-[12.5px] font-semibold text-red">
+                Outlet tutup pada tanggal yang dipilih. Booking tidak tersedia.
+              </p>
+            )}
+          </div>
+
+          {/* Meja / Asset Grid */}
+          <div className="form-field">
+            <label className="form-label">
+              Pilih Meja / Unit{" "}
+              {!date && (
+                <span className="font-normal text-muted text-xs ml-1">
+                  (pilih tanggal terlebih dahulu)
+                </span>
+              )}
+            </label>
+            <div className="table-grid" id="tableGrid">
+              {initialTables.map((t) => {
+                const isDateSelected = date !== "";
+                const isTableUnavailable = !isDateSelected || isStoreClosed;
+                const isActive =
+                  isDateSelected &&
+                  (selectedTable === t.id || selectedTable === t.name);
+
+                let btnClass = "table-option";
+
+                if (isTableUnavailable) {
+                  btnClass += " table-option--disabled";
+                } else if (isActive) {
+                  btnClass += " table-option--active";
+                } else {
+                  btnClass += " table-option--idle";
+                }
+
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    disabled={isTableUnavailable}
+                    onClick={() => {
+                      setSelectedTable(t.id);
+                      setReservedHours(new Set());
+                      resetTimeSelection();
+                    }}
+                    className={btnClass}
+                    title={
+                      !isDateSelected
+                        ? "Silakan pilih tanggal terlebih dahulu"
+                        : isStoreClosed
+                          ? "Outlet tutup pada tanggal yang dipilih"
+                          : undefined
+                    }
+                  >
+                    {t.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Pilih Jam */}
+          <div className="form-field">
+            <label className="form-label">
+              Pilih Jam{" "}
+              <span className="font-normal text-muted text-xs ml-1">
+                (klik jam mulai, lalu jam selesai)
+              </span>
+            </label>
+            <div className="time-grid" id="timeGrid">
+              {hours.map((h) => {
+                const isTableSelected = selectedTable !== null;
+                const isReserved = activeReservedHours.has(h);
+                const isPast = isPastHour(h);
+                const isStart = startHour === h;
+                const isEnd = endHour === h;
+                const inRange =
+                  startHour !== null &&
+                  endHour !== null &&
+                  h > startHour &&
+                  h < endHour;
+                const canUseAsEndBoundary =
+                  isTableSelected &&
+                  startHour !== null &&
+                  endHour === null &&
+                  h > startHour &&
+                  isRangeAvailable(startHour, h);
+                const isDisabled =
+                  !isTableSelected ||
+                  isStoreClosed ||
+                  isPast ||
+                  (isReserved && !canUseAsEndBoundary);
+
+                let btnClass = "time-option";
+
+                if (isDisabled) {
+                  btnClass +=
+                    " time-option--disabled" +
+                    (isReserved ? " line-through" : "");
+                } else if (isStart || isEnd) {
+                  btnClass += " time-option--edge";
+                } else if (inRange) {
+                  btnClass += " time-option--range";
+                } else {
+                  btnClass += " time-option--idle";
+                }
+
+                const tooltip = !isTableSelected
+                  ? "Silakan pilih meja terlebih dahulu"
+                  : isStoreClosed
+                    ? "Outlet tutup pada tanggal yang dipilih"
+                    : isPast
+                      ? "Jam ini sudah lewat"
+                      : canUseAsEndBoundary
+                        ? "Jam ini bisa dipilih sebagai batas akhir booking"
+                        : isReserved
+                          ? "Meja/Unit ini sudah dipesan pada jam ini"
+                          : undefined;
+
+                return (
+                  <button
+                    key={h}
+                    type="button"
+                    disabled={isDisabled}
+                    onClick={() => handleTimeClick(h)}
+                    className={btnClass}
+                    title={tooltip}
+                  >
+                    {fmtHour(h)}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="time-hint" id="timeHint">
+              {getTimeHintText()}
+            </div>
+          </div>
+
+          {/* Kode Voucher */}
+          <div className="voucher-field">
+            <label htmlFor="voucher" className="form-label">
+              Kode Voucher{" "}
+              <span className="font-normal text-muted text-xs ml-1">
+                (opsional)
+              </span>
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                id="voucher"
+                placeholder="Masukkan kode"
+                value={voucherInput}
+                onChange={(e) => setVoucherInput(e.target.value)}
+                className="form-control"
+              />
+              <button
+                type="button"
+                id="applyVoucher"
+                onClick={handleApplyVoucher}
+                disabled={isApplyingVoucher}
+                className="voucher-button"
+              >
+                {isApplyingVoucher ? "Memeriksa..." : "Terapkan"}
+              </button>
+            </div>
+            <div
+              id="voucherMsg"
+              className={`text-[12.5px] mt-1.5 min-h-3.5 ${
+                voucherMsg?.type === "ok"
+                  ? "text-pine font-semibold"
+                  : voucherMsg?.type === "err"
+                    ? "text-danger font-semibold"
+                    : ""
+              }`}
             >
-              {isApplyingVoucher ? "Memeriksa..." : "Terapkan"}
-            </button>
+              {voucherMsg?.text || ""}
+            </div>
           </div>
-          <div
-            id="voucherMsg"
-            className={`text-[12.5px] mt-1.5 min-h-3.5 ${
-              voucherMsg?.type === "ok"
-                ? "text-pine font-semibold"
-                : voucherMsg?.type === "err"
-                  ? "text-danger font-semibold"
-                  : ""
-            }`}
-          >
-            {voucherMsg?.text || ""}
-          </div>
-        </div>
         </div>
 
         {/* Ribbon */}
@@ -1004,255 +979,256 @@ export default function BookingForm({
             </div>
           </div>
 
-        {/* Summary Box */}
-        <div className="summary-box">
-          <div className="flex justify-between items-center text-[13.5px] py-1.5 text-ink">
-            <span className="text-muted">Meja</span>
-            <span id="sumTable" className="font-semibold text-pine">
-              {getSelectedTableLabel()}
-            </span>
-          </div>
-          <div className="flex justify-between items-center text-[13.5px] py-1.5 text-ink">
-            <span className="text-muted">Tanggal</span>
-            <span id="sumDate" className="font-semibold">
-              {formattedDateStr}
-            </span>
-          </div>
-          <div className="flex justify-between items-center text-[13.5px] py-1.5 text-ink">
-            <span className="text-muted">Jam</span>
-            <span id="sumTime" className="font-semibold">
-              {formattedTimeStr}
-            </span>
-          </div>
-          <div className="flex justify-between items-center text-[13.5px] py-1.5 text-ink">
-            <span className="text-muted">Total Jam</span>
-            <span id="sumHours" className="font-semibold">
-              {totalHours ? `${totalHours} jam` : "—"}
-            </span>
-          </div>
-          <div className="border-t border-dashed border-[#d8cfa9] my-2" />
-          <div className="flex justify-between items-center text-[13.5px] py-1.5 text-ink">
-            <span className="text-muted">Tarif per jam</span>
-            <span
-              className="bg-pine text-cream-2 font-baloo font-bold text-[13px] px-3 py-1 rounded-full tracking-wide shadow-xs"
-              id="sumRate"
-            >
-              {rate ? `${formatRp(rate)}/jam` : "Rp0"}
-            </span>
-          </div>
-          {subtotal > 0 && (
+          {/* Summary Box */}
+          <div className="summary-box">
             <div className="flex justify-between items-center text-[13.5px] py-1.5 text-ink">
-              <span className="text-muted">Subtotal</span>
-              <span className="font-semibold text-ink">
-                {formatRp(subtotal)}
+              <span className="text-muted">Meja</span>
+              <span id="sumTable" className="font-semibold text-pine">
+                {getSelectedTableLabel()}
               </span>
             </div>
-          )}
-          {discount > 0 && (
-            <div
-              className="flex justify-between items-center text-[13.5px] py-1.5 text-ink"
-              id="discountRow"
-            >
-              <span className="text-muted">Diskon voucher</span>
+            <div className="flex justify-between items-center text-[13.5px] py-1.5 text-ink">
+              <span className="text-muted">Tanggal</span>
+              <span id="sumDate" className="font-semibold">
+                {formattedDateStr}
+              </span>
+            </div>
+            <div className="flex justify-between items-center text-[13.5px] py-1.5 text-ink">
+              <span className="text-muted">Jam</span>
+              <span id="sumTime" className="font-semibold">
+                {formattedTimeStr}
+              </span>
+            </div>
+            <div className="flex justify-between items-center text-[13.5px] py-1.5 text-ink">
+              <span className="text-muted">Total Jam</span>
+              <span id="sumHours" className="font-semibold">
+                {totalHours ? `${totalHours} jam` : "—"}
+              </span>
+            </div>
+            <div className="border-t border-dashed border-[#d8cfa9] my-2" />
+            <div className="flex justify-between items-center text-[13.5px] py-1.5 text-ink">
+              <span className="text-muted">Tarif per jam</span>
               <span
-                className="bg-[#3f7452] text-cream-2 font-baloo font-bold text-[13px] px-3 py-1 rounded-full tracking-wide shadow-xs"
-                id="sumDiscount"
+                className="bg-pine text-cream-2 font-baloo font-bold text-[13px] px-3 py-1 rounded-full tracking-wide shadow-xs"
+                id="sumRate"
               >
-                -{formatRp(discount)}
+                {rate ? `${formatRp(rate)}/jam` : "Rp0"}
               </span>
             </div>
-          )}
-          {serviceChargeAmount > 0 && (
-            <div className="flex justify-between items-center text-[13.5px] py-1.5 text-ink">
-              <span className="text-muted">
-                Service Charge ({initialStoreSettings?.serviceChargePercentage}
-                %)
-              </span>
-              <span className="font-semibold text-ink">
-                +{formatRp(serviceChargeAmount)}
-              </span>
-            </div>
-          )}
-          {taxAmount > 0 && (
-            <div className="flex justify-between items-center text-[13.5px] py-1.5 text-ink">
-              <span className="text-muted">
-                Pajak / Tax ({initialStoreSettings?.taxPercentage}%)
-              </span>
-              <span className="font-semibold text-ink">
-                +{formatRp(taxAmount)}
-              </span>
-            </div>
-          )}
-          <div className="border-t border-dashed border-[#d8cfa9] my-2" />
-          <div className="flex justify-between items-center text-[13.5px] py-1.5 text-ink">
-            <span className="font-baloo font-bold text-pine text-[15px]">
-              Total Harga
-            </span>
-            <span
-              className="bg-red text-cream-2 font-baloo font-bold text-[17px] px-3.5 py-1 rounded-full tracking-wide shadow-xs"
-              id="sumTotal"
-            >
-              {formatRp(total)}
-            </span>
-          </div>
-        </div>
-
-        {/* Consent */}
-        <div className="consent-row">
-          <input
-            type="checkbox"
-            id="consent"
-            checked={consent}
-            onChange={(e) => setConsent(e.target.checked)}
-            className="mt-0.5 w-4 h-4 accent-pine shrink-0 cursor-pointer"
-          />
-          <label
-            htmlFor="consent"
-            className="text-[12.5px] text-muted leading-normal cursor-pointer"
-          >
-            Saya menyetujui{" "}
-            <a
-              href="/syarat-dan-ketentuan"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-pine font-bold underline hover:text-gold transition-colors"
-            >
-              syarat &amp; ketentuan
-            </a>{" "}
-            booking, termasuk kebijakan pembatalan dan keterlambatan Satu Meja
-            Social Mahjong &amp; Game Club.
-          </label>
-        </div>
-
-        {/* Submit Button */}
-        {initialStoreSettings?.paymentGatewayEnabled === false && (
-          <div className="mt-4 mb-2">
-            <div className="bg-[#fff7dd] border border-gold rounded-2xl p-4 mb-4 text-[13px] leading-6 text-pine">
-              Payment gateway sedang dimatikan admin. Untuk menyelesaikan
-              booking, upload bukti transfer di bawah ini.
-            </div>
-
-            <div
-              className="mb-4"
-              style={{
-                width: "100%",
-                maxWidth: "340px",
-                margin: "0 auto 1rem",
-                border: "2px solid #d8cfa9",
-                borderRadius: "24px",
-                backgroundColor: "#ffffff",
-                padding: "10px",
-                boxShadow: "0 12px 30px -22px rgba(27, 58, 43, 0.55)",
-                boxSizing: "border-box",
-              }}
-            >
+            {subtotal > 0 && (
+              <div className="flex justify-between items-center text-[13.5px] py-1.5 text-ink">
+                <span className="text-muted">Subtotal</span>
+                <span className="font-semibold text-ink">
+                  {formatRp(subtotal)}
+                </span>
+              </div>
+            )}
+            {discount > 0 && (
               <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: "12px",
-                  marginBottom: "12px",
-                  padding: "12px 14px",
-                  borderRadius: "16px",
-                  backgroundColor: "#fff7dd",
-                }}
+                className="flex justify-between items-center text-[13.5px] py-1.5 text-ink"
+                id="discountRow"
               >
-                <div>
-                  <p className="m-0 font-baloo text-[15px] text-pine">
-                    Scan QRIS untuk Pembayaran
-                  </p>
-                  <p
-                    className="m-0 mt-1 text-[11px] text-muted"
-                    style={{ lineHeight: 1.35 }}
-                  >
-                    Setelah transfer, lanjut upload bukti pembayaran agar
-                    booking bisa diverifikasi admin.
-                  </p>
-                </div>
-                <div className="shrink-0 rounded-full bg-pine px-3 py-1 text-[11px] font-bold uppercase tracking-[0.08em] text-cream-2">
-                  QRIS
-                </div>
+                <span className="text-muted">Diskon voucher</span>
+                <span
+                  className="bg-[#3f7452] text-cream-2 font-baloo font-bold text-[13px] px-3 py-1 rounded-full tracking-wide shadow-xs"
+                  id="sumDiscount"
+                >
+                  -{formatRp(discount)}
+                </span>
+              </div>
+            )}
+            {serviceChargeAmount > 0 && (
+              <div className="flex justify-between items-center text-[13.5px] py-1.5 text-ink">
+                <span className="text-muted">
+                  Service Charge (
+                  {initialStoreSettings?.serviceChargePercentage}
+                  %)
+                </span>
+                <span className="font-semibold text-ink">
+                  +{formatRp(serviceChargeAmount)}
+                </span>
+              </div>
+            )}
+            {taxAmount > 0 && (
+              <div className="flex justify-between items-center text-[13.5px] py-1.5 text-ink">
+                <span className="text-muted">
+                  Pajak / Tax ({initialStoreSettings?.taxPercentage}%)
+                </span>
+                <span className="font-semibold text-ink">
+                  +{formatRp(taxAmount)}
+                </span>
+              </div>
+            )}
+            <div className="border-t border-dashed border-[#d8cfa9] my-2" />
+            <div className="flex justify-between items-center text-[13.5px] py-1.5 text-ink">
+              <span className="font-baloo font-bold text-pine text-[15px]">
+                Total Harga
+              </span>
+              <span
+                className="bg-red text-cream-2 font-baloo font-bold text-[17px] px-3.5 py-1 rounded-full tracking-wide shadow-xs"
+                id="sumTotal"
+              >
+                {formatRp(total)}
+              </span>
+            </div>
+          </div>
+
+          {/* Consent */}
+          <div className="consent-row">
+            <input
+              type="checkbox"
+              id="consent"
+              checked={consent}
+              onChange={(e) => setConsent(e.target.checked)}
+              className="mt-0.5 w-4 h-4 accent-pine shrink-0 cursor-pointer"
+            />
+            <label
+              htmlFor="consent"
+              className="text-[12.5px] text-muted leading-normal cursor-pointer"
+            >
+              Saya menyetujui{" "}
+              <a
+                href="/syarat-dan-ketentuan"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-pine font-bold underline hover:text-gold transition-colors"
+              >
+                syarat &amp; ketentuan
+              </a>{" "}
+              booking, termasuk kebijakan pembatalan dan keterlambatan Satu Meja
+              Social Mahjong &amp; Game Club.
+            </label>
+          </div>
+
+          {/* Submit Button */}
+          {initialStoreSettings?.paymentGatewayEnabled === false && (
+            <div className="mt-4 mb-2">
+              <div className="bg-[#fff7dd] border border-gold rounded-2xl p-4 mb-4 text-[13px] leading-6 text-pine">
+                Payment gateway sedang dimatikan admin. Untuk menyelesaikan
+                booking, upload bukti transfer di bawah ini.
               </div>
 
               <div
+                className="mb-4"
                 style={{
                   width: "100%",
-                  maxWidth: "260px",
-                  margin: "0 auto",
-                  border: "1px solid #ece2c0",
-                  borderRadius: "16px",
-                  backgroundColor: "#fffdf7",
-                  overflow: "hidden",
+                  maxWidth: "340px",
+                  margin: "0 auto 1rem",
+                  border: "2px solid #d8cfa9",
+                  borderRadius: "24px",
+                  backgroundColor: "#ffffff",
+                  padding: "10px",
+                  boxShadow: "0 12px 30px -22px rgba(27, 58, 43, 0.55)",
+                  boxSizing: "border-box",
                 }}
               >
-                <img
-                  src="/QRIS.jpeg"
-                  alt="Kode QRIS untuk pembayaran booking"
-                  width={1127}
-                  height={1600}
+                <div
                   style={{
-                    display: "block",
-                    width: "100%",
-                    height: "auto",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: "12px",
+                    marginBottom: "12px",
+                    padding: "12px 14px",
+                    borderRadius: "16px",
+                    backgroundColor: "#fff7dd",
                   }}
-                />
+                >
+                  <div>
+                    <p className="m-0 font-baloo text-[15px] text-pine">
+                      Scan QRIS untuk Pembayaran
+                    </p>
+                    <p
+                      className="m-0 mt-1 text-[11px] text-muted"
+                      style={{ lineHeight: 1.35 }}
+                    >
+                      Setelah transfer, lanjut upload bukti pembayaran agar
+                      booking bisa diverifikasi admin.
+                    </p>
+                  </div>
+                  <div className="shrink-0 rounded-full bg-pine px-3 py-1 text-[11px] font-bold uppercase tracking-[0.08em] text-cream-2">
+                    QRIS
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    width: "100%",
+                    maxWidth: "260px",
+                    margin: "0 auto",
+                    border: "1px solid #ece2c0",
+                    borderRadius: "16px",
+                    backgroundColor: "#fffdf7",
+                    overflow: "hidden",
+                  }}
+                >
+                  <img
+                    src="/QRIS.jpeg"
+                    alt="Kode QRIS untuk pembayaran booking"
+                    width={1127}
+                    height={1600}
+                    style={{
+                      display: "block",
+                      width: "100%",
+                      height: "auto",
+                    }}
+                  />
+                </div>
               </div>
+
+              <label
+                htmlFor="payment-proof"
+                className="block font-baloo font-semibold text-[13.5px] text-pine mb-1.5 tracking-wide"
+              >
+                Bukti Pembayaran
+              </label>
+              <input
+                id="payment-proof"
+                ref={paymentProofInputRef}
+                type="file"
+                accept=".jpg,.jpeg,.png,.webp,.pdf"
+                onChange={(event) => {
+                  const file = event.target.files?.[0] || null;
+
+                  if (file && file.size > MAX_PAYMENT_PROOF_BYTES) {
+                    setPaymentProof(null);
+                    setBookingError(
+                      `Ukuran bukti pembayaran maksimal ${MAX_PAYMENT_PROOF_LABEL}.`,
+                    );
+                    event.currentTarget.value = "";
+                    return;
+                  }
+
+                  setPaymentProof(file);
+                  setBookingError(null);
+                }}
+                className="w-full bg-white border-[1.5px] border-[#d8cfa9] rounded-xl px-3.5 py-2.5 text-[14px] text-ink outline-none transition-all duration-150 file:mr-3 file:rounded-lg file:border-0 file:bg-pine file:px-3 file:py-2 file:font-semibold file:text-cream-2"
+              />
+              <p className="text-[11.5px] text-muted mt-2 mb-0">
+                Format JPG, PNG, WEBP, atau PDF. Maksimal{" "}
+                {MAX_PAYMENT_PROOF_LABEL}.
+              </p>
             </div>
+          )}
 
-            <label
-              htmlFor="payment-proof"
-              className="block font-baloo font-semibold text-[13.5px] text-pine mb-1.5 tracking-wide"
-            >
-              Bukti Pembayaran
-            </label>
-            <input
-              id="payment-proof"
-              ref={paymentProofInputRef}
-              type="file"
-              accept=".jpg,.jpeg,.png,.webp,.pdf"
-              onChange={(event) => {
-                const file = event.target.files?.[0] || null;
+          <button
+            type="button"
+            id="submitBtn"
+            disabled={!isFormValid || isSubmitting}
+            onClick={handleSubmit}
+            className="booking-submit"
+          >
+            {isSubmitting
+              ? "Memproses..."
+              : initialStoreSettings?.paymentGatewayEnabled === false
+                ? "Upload Bukti & Konfirmasi Booking"
+                : "Bayar & Konfirmasi Booking"}
+          </button>
 
-                if (file && file.size > MAX_PAYMENT_PROOF_BYTES) {
-                  setPaymentProof(null);
-                  setBookingError(
-                    `Ukuran bukti pembayaran maksimal ${MAX_PAYMENT_PROOF_LABEL}.`,
-                  );
-                  event.currentTarget.value = "";
-                  return;
-                }
-
-                setPaymentProof(file);
-                setBookingError(null);
-              }}
-              className="w-full bg-white border-[1.5px] border-[#d8cfa9] rounded-xl px-3.5 py-2.5 text-[14px] text-ink outline-none transition-all duration-150 file:mr-3 file:rounded-lg file:border-0 file:bg-pine file:px-3 file:py-2 file:font-semibold file:text-cream-2"
-            />
-            <p className="text-[11.5px] text-muted mt-2 mb-0">
-              Format JPG, PNG, WEBP, atau PDF. Maksimal{" "}
-              {MAX_PAYMENT_PROOF_LABEL}.
-            </p>
-          </div>
-        )}
-
-        <button
-          type="button"
-          id="submitBtn"
-          disabled={!isFormValid || isSubmitting}
-          onClick={handleSubmit}
-          className="booking-submit"
-        >
-          {isSubmitting
-            ? "Memproses..."
-            : initialStoreSettings?.paymentGatewayEnabled === false
-              ? "Upload Bukti & Konfirmasi Booking"
-              : "Bayar & Konfirmasi Booking"}
-        </button>
-
-        <p className="booking-footnote">
+          {/* <p className="booking-footnote">
           Harga mengikuti tarif weekday (Sen–Kam) &amp; weekend/libur nasional
           (Jum–Min) yang berlaku.
-        </p>
+        </p> */}
         </aside>
       </div>
     </section>
