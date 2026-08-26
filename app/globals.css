@@ -881,7 +881,7 @@ body {
 .site-footer__details { display: flex; align-items: center; gap: 14px; }
 .site-footer__details p,
 .site-footer__details a { margin: 0; color: var(--color-muted); font-size: 10px; }
-.site-footer__details a { color: var(--color-pine); font-weight: 700; text-decoration: none; }
+.site-footer__details a { color: var(--color-pine); font-weight: inherit; text-decoration: none; }
 .site-footer__details a:hover { color: var(--color-red); text-decoration: underline; }
 
 @media (max-width: 980px) {
@@ -941,7 +941,7 @@ body {
   .voucher-field { margin-right: -4px; margin-left: -4px; padding: 17px; }
   .voucher-field > div:first-of-type { flex-direction: column; }
   .voucher-button { width: 100%; }
-  .site-footer { min-height: 150px; padding: 28px 0; flex-direction: column; align-items: flex-start; justify-content: center; gap: 22px; }
+  .site-footer { min-height: 150px; padding: 28px 0; flex-direction: column; align-items: center; justify-content: center; gap: 42px; }
   .site-footer__details { width: 100%; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
 }
 
