@@ -155,11 +155,18 @@ export default async function Home() {
         <div className="site-footer__details">
           <p>© {new Date().getFullYear()} FlowPOS · Semarang</p>
           <a
+            href="https://wa.me/6289672094579"
+            target="_blank"
+            rel="noreferrer"
+          >
+            WhatsApp Admin: +62 896-7209-4579
+          </a>
+          <a
             href="https://wa.me/62895413315500"
             target="_blank"
             rel="noreferrer"
           >
-            WhatsApp: +62 895-4133-15500
+            Jasa Pembuatan Website: +62 895-4133-15500
           </a>
         </div>
       </footer>

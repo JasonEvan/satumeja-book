@@ -91,10 +91,6 @@ export default function SyaratDanKetentuanPage() {
             </h2>
             <ul className="list-disc list-inside space-y-2 text-ink/90 pl-1">
               <li>
-                Tarif sewa meja terbagi menjadi <b>Weekday (Senin – Kamis)</b>{" "}
-                dan <b>Weekend / Libur Nasional (Jumat – Minggu)</b>.
-              </li>
-              <li>
                 Penggunaan kode voucher promo wajib dimasukkan sebelum
                 mengonfirmasi pesanan. Diskon tidak dapat disusulkan setelah
                 transaksi.
