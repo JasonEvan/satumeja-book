@@ -207,6 +207,16 @@ function getBookingConfirmationBadge(booking: AdminBookingItem) {
     };
   }
 
+  if (normalizedStatus === "cancelled") {
+    return {
+      label: "Ditolak",
+      style: {
+        backgroundColor: "#f6dfdf",
+        color: "#7a2a2a",
+      },
+    };
+  }
+
   return null;
 }
 
@@ -443,6 +453,9 @@ export default function AdminPageClient({
   const [confirmingBookingId, setConfirmingBookingId] = useState<string | null>(
     null,
   );
+  const [rejectingBookingId, setRejectingBookingId] = useState<string | null>(
+    null,
+  );
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -566,6 +579,36 @@ export default function AdminPageClient({
       setError(err instanceof Error ? err.message : "Gagal mengonfirmasi booking.");
     } finally {
       setConfirmingBookingId(null);
+    }
+  };
+
+  const handleRejectStaticBooking = async (bookingId: string) => {
+    if (!window.confirm("Tolak booking ini? Slot akan tersedia kembali.")) {
+      return;
+    }
+
+    setRejectingBookingId(bookingId);
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/admin/bookings/${bookingId}/reject`, {
+        method: "POST",
+      });
+      const payload = (await response.json().catch(() => null)) as {
+        error?: string;
+      } | null;
+
+      if (!response.ok) {
+        throw new Error(payload?.error || "Gagal menolak booking.");
+      }
+
+      setMessage("Booking ditolak dan slot telah tersedia kembali.");
+      setSelectedBookingId(null);
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Gagal menolak booking.");
+    } finally {
+      setRejectingBookingId(null);
     }
   };
 
@@ -1141,34 +1184,78 @@ export default function AdminPageClient({
                             </p>
                             {selectedBooking.status === "pending_payment" &&
                             !isStaticBookingHoldExpired(selectedBooking) ? (
-                              <button
-                                type="button"
-                                onClick={() => handleConfirmStaticBooking(selectedBooking.id)}
-                                disabled={confirmingBookingId === selectedBooking.id}
+                              <div
                                 style={{
+                                  display: "flex",
+                                  justifyContent: "center",
+                                  flexWrap: "wrap",
+                                  gap: "10px",
                                   marginTop: "16px",
-                                  border: 0,
-                                  borderRadius: "12px",
-                                  backgroundColor: "#1b3a2b",
-                                  padding: "10px 14px",
-                                  color: "#fbf7ec",
-                                  fontSize: "14px",
-                                  lineHeight: "18px",
-                                  fontWeight: 600,
-                                  cursor:
-                                    confirmingBookingId === selectedBooking.id
-                                      ? "wait"
-                                      : "pointer",
-                                  opacity:
-                                    confirmingBookingId === selectedBooking.id
-                                      ? 0.7
-                                      : 1,
                                 }}
                               >
-                                {confirmingBookingId === selectedBooking.id
-                                  ? "Mengonfirmasi..."
-                                  : "Konfirmasi Pembayaran"}
-                              </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleConfirmStaticBooking(selectedBooking.id)}
+                                  disabled={
+                                    confirmingBookingId === selectedBooking.id ||
+                                    rejectingBookingId === selectedBooking.id
+                                  }
+                                  style={{
+                                    border: 0,
+                                    borderRadius: "12px",
+                                    backgroundColor: "#1b3a2b",
+                                    padding: "10px 14px",
+                                    color: "#fbf7ec",
+                                    fontSize: "14px",
+                                    lineHeight: "18px",
+                                    fontWeight: 600,
+                                    cursor:
+                                      confirmingBookingId === selectedBooking.id
+                                        ? "wait"
+                                        : "pointer",
+                                    opacity:
+                                      confirmingBookingId === selectedBooking.id ||
+                                      rejectingBookingId === selectedBooking.id
+                                        ? 0.7
+                                        : 1,
+                                  }}
+                                >
+                                  {confirmingBookingId === selectedBooking.id
+                                    ? "Mengonfirmasi..."
+                                    : "Konfirmasi Pembayaran"}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRejectStaticBooking(selectedBooking.id)}
+                                  disabled={
+                                    confirmingBookingId === selectedBooking.id ||
+                                    rejectingBookingId === selectedBooking.id
+                                  }
+                                  style={{
+                                    border: "1px solid #a3342f",
+                                    borderRadius: "12px",
+                                    backgroundColor: "#fffdf7",
+                                    padding: "10px 14px",
+                                    color: "#a3342f",
+                                    fontSize: "14px",
+                                    lineHeight: "18px",
+                                    fontWeight: 600,
+                                    cursor:
+                                      rejectingBookingId === selectedBooking.id
+                                        ? "wait"
+                                        : "pointer",
+                                    opacity:
+                                      confirmingBookingId === selectedBooking.id ||
+                                      rejectingBookingId === selectedBooking.id
+                                        ? 0.7
+                                        : 1,
+                                  }}
+                                >
+                                  {rejectingBookingId === selectedBooking.id
+                                    ? "Menolak..."
+                                    : "Tolak Booking"}
+                                </button>
+                              </div>
                             ) : null}
                           </div>
                         ) : (
