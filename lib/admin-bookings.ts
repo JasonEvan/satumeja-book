@@ -10,6 +10,8 @@ export interface AdminBookingItem {
   status: string | null;
   paymentMethod: string | null;
   midtransOrderId: string | null;
+  paymentExpiresAt: string | null;
+  createdAt: string | null;
   paymentVerificationStatus: string | null;
   paymentProofPath: string | null;
   paymentProofUploadedAt: string | null;
@@ -28,6 +30,8 @@ interface RentalRow {
   status: string | null;
   payment_method: string | null;
   midtrans_order_id: string | null;
+  payment_expired_at: string | null;
+  created_at: string | null;
   payment_verification_status: string | null;
   payment_proof_path: string | null;
   payment_proof_uploaded_at: string | null;
@@ -62,7 +66,7 @@ export async function getAdminBookings(): Promise<AdminBookingItem[]> {
   const { data, error } = await admin
     .from("rentals")
     .select(
-      "id, customer_name, customer_phone, started_at, estimated_ended_at, status, payment_method, midtrans_order_id, payment_verification_status, payment_proof_path, payment_proof_uploaded_at, payment_proof_mime_type, gross_amount, assets(asset_name)",
+      "id, customer_name, customer_phone, started_at, estimated_ended_at, status, payment_method, midtrans_order_id, payment_expired_at, created_at, payment_verification_status, payment_proof_path, payment_proof_uploaded_at, payment_proof_mime_type, gross_amount, assets(asset_name)",
     )
     .or("payment_method.eq.manual_transfer,midtrans_order_id.like.static-*")
     .order("started_at", { ascending: false })
@@ -101,6 +105,8 @@ export async function getAdminBookings(): Promise<AdminBookingItem[]> {
     status: item.status,
     paymentMethod: item.payment_method,
     midtransOrderId: item.midtrans_order_id,
+    paymentExpiresAt: item.payment_expired_at,
+    createdAt: item.created_at,
     paymentVerificationStatus: item.payment_verification_status,
     paymentProofPath: item.payment_proof_path,
     paymentProofUploadedAt: item.payment_proof_uploaded_at,

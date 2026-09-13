@@ -157,10 +157,37 @@ function getStatusBadgeColors(bucket: BookingFilter): React.CSSProperties {
   }
 }
 
-function getBookingConfirmationBadge(status: string | null) {
-  const normalizedStatus = normalizeStatus(status);
+function isStaticBookingHoldExpired(booking: AdminBookingItem) {
+  if (
+    !booking.midtransOrderId?.startsWith("static-") ||
+    normalizeStatus(booking.status) !== "pending_payment"
+  ) {
+    return false;
+  }
+
+  const expiry = booking.paymentExpiresAt
+    ? new Date(booking.paymentExpiresAt)
+    : booking.createdAt
+      ? new Date(new Date(booking.createdAt).getTime() + 15 * 60 * 1000)
+      : null;
+
+  return Boolean(expiry && !Number.isNaN(expiry.getTime()) && expiry.getTime() <= Date.now());
+}
+
+function getBookingConfirmationBadge(booking: AdminBookingItem) {
+  const normalizedStatus = normalizeStatus(booking.status);
 
   if (normalizedStatus === "pending_payment") {
+    if (isStaticBookingHoldExpired(booking)) {
+      return {
+        label: "Hold Hangus",
+        style: {
+          backgroundColor: "#f6dfdf",
+          color: "#7a2a2a",
+        },
+      };
+    }
+
     return {
       label: "Menunggu Konfirmasi",
       style: {
@@ -885,7 +912,7 @@ export default function AdminPageClient({
                       const verificationBucket = getVerificationBucket(booking);
                       const showVerificationBadge = verificationBucket === "review";
                       const confirmationBadge = getBookingConfirmationBadge(
-                        booking.status,
+                        booking,
                       );
                       return (
                         <button
@@ -1112,7 +1139,8 @@ export default function AdminPageClient({
                             >
                               Bukti pembayaran dikonfirmasi melalui WhatsApp.
                             </p>
-                            {selectedBooking.status === "pending_payment" ? (
+                            {selectedBooking.status === "pending_payment" &&
+                            !isStaticBookingHoldExpired(selectedBooking) ? (
                               <button
                                 type="button"
                                 onClick={() => handleConfirmStaticBooking(selectedBooking.id)}
