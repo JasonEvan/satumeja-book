@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 
 import { calculateBookingTotals } from "@/lib/booking-pricing";
@@ -23,8 +24,6 @@ function formatRp(n: number) {
   return "Rp" + Math.round(n).toLocaleString("id-ID");
 }
 
-const MAX_PAYMENT_PROOF_BYTES = 4 * 1024 * 1024;
-const MAX_PAYMENT_PROOF_LABEL = "4MB";
 const EMPTY_RATES: RatesData = { weekday: [], weekend: [] };
 
 function isVoucherAvailableOn(voucher: VoucherItem, bookingDate: string) {
@@ -35,19 +34,6 @@ function isVoucherAvailableOn(voucher: VoucherItem, bookingDate: string) {
     },
     bookingDate,
   );
-}
-
-async function getManualBookingResponsePayload(response: Response) {
-  const contentType = response.headers.get("content-type") || "";
-
-  if (contentType.includes("application/json")) {
-    return (await response.json().catch(() => null)) as {
-      error?: string;
-      message?: string;
-    } | null;
-  }
-
-  return null;
 }
 
 interface BookingFormProps {
@@ -61,6 +47,7 @@ export default function BookingForm({
   initialRates,
   initialStoreSettings,
 }: BookingFormProps) {
+  const router = useRouter();
   const openingHour = initialStoreSettings?.openingHour ?? 10;
   const closingHour = initialStoreSettings?.closingHour ?? 23;
   const hours = useMemo(() => {
@@ -105,8 +92,6 @@ export default function BookingForm({
   const [bookingError, setBookingError] = useState<string | null>(null);
   const [bookingPending, setBookingPending] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [paymentProof, setPaymentProof] = useState<File | null>(null);
-  const paymentProofInputRef = useRef<HTMLInputElement>(null);
 
   const [reservedHours, setReservedHours] = useState<Set<number>>(new Set());
 
@@ -140,12 +125,7 @@ export default function BookingForm({
     setAppliedVoucher(null);
     setVoucherMsg(null);
     setConsent(false);
-    setPaymentProof(null);
     setReservedHours(new Set());
-
-    if (paymentProofInputRef.current) {
-      paymentProofInputRef.current.value = "";
-    }
   };
 
   useEffect(() => {
@@ -493,8 +473,7 @@ export default function BookingForm({
     !isStoreClosed &&
     selectedTable !== null &&
     hasTime &&
-    consent &&
-    (initialStoreSettings?.paymentGatewayEnabled !== false || !!paymentProof);
+    consent;
 
   const pollBookingStatus = async (orderId: string) => {
     for (let attempt = 0; attempt < 10; attempt += 1) {
@@ -554,59 +533,47 @@ export default function BookingForm({
 
     try {
       if (initialStoreSettings?.paymentGatewayEnabled === false) {
-        if (!paymentProof) {
-          throw new Error("Bukti pembayaran wajib diunggah.");
-        }
-
-        if (paymentProof.size > MAX_PAYMENT_PROOF_BYTES) {
-          throw new Error(
-            `Ukuran bukti pembayaran maksimal ${MAX_PAYMENT_PROOF_LABEL}.`,
-          );
-        }
-
-        const formData = new FormData();
-        formData.set("name", name.trim());
-        formData.set("phone", phone.trim());
-        formData.set("assetId", String(selectedItem?.id || ""));
-        formData.set("date", date);
-        formData.set("startHour", String(startHour));
-        formData.set("endHour", String(endHour));
-        if (appliedVoucher?.code) {
-          formData.set("voucherCode", appliedVoucher.code);
-        }
-        formData.set("paymentProof", paymentProof);
-
-        const response = await fetch("/api/bookings/manual", {
+        const response = await fetch("/api/bookings/static", {
           method: "POST",
-          body: formData,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: name.trim(),
+            phone: phone.trim(),
+            assetId: String(selectedItem?.id || ""),
+            date,
+            startHour,
+            endHour,
+            voucherCode: appliedVoucher?.code || null,
+          }),
         });
+        const payload = (await response.json().catch(() => null)) as {
+          error?: string;
+          rentalId?: string;
+          paymentExpiresAt?: string | null;
+          booking?: {
+            customerName: string;
+            tableName: string;
+            date: string;
+            startHour: number;
+            endHour: number;
+            total: number;
+          };
+        } | null;
 
-        const payload = await getManualBookingResponsePayload(response);
-
-        if (!response.ok) {
-          if (response.status === 413) {
-            throw new Error(
-              `Ukuran bukti pembayaran terlalu besar. Maksimal ${MAX_PAYMENT_PROOF_LABEL}.`,
-            );
-          }
-
-          throw new Error(payload?.error || "Gagal mengirim booking manual.");
+        if (!response.ok || !payload?.rentalId || !payload.booking) {
+          throw new Error(payload?.error || "Gagal membuat booking.");
         }
 
-        if (!payload) {
-          throw new Error("Respons booking tidak valid. Silakan coba lagi.");
-        }
-
-        const detail = `${name.trim()}, ${tableName} · ${formattedDateStr} · ${formattedTimeStr} · Total ${formatRp(
-          total,
-        )}`;
-        setBookingPending(null);
-        setBookingSuccess(
-          payload.message
-            ? `${detail} · ${payload.message}`
-            : `${detail} · Bukti pembayaran menunggu verifikasi admin.`,
+        window.sessionStorage.setItem(
+          "static-booking-confirmation",
+          JSON.stringify({
+            rentalId: payload.rentalId,
+            paymentExpiresAt: payload.paymentExpiresAt || null,
+            booking: payload.booking,
+          }),
         );
-        resetBookingForm();
+        router.push("/booking/konfirmasi");
+        return;
       } else {
         if (!window.snap || !isSnapReady) {
           throw new Error("Midtrans Snap belum siap. Silakan coba lagi.");
@@ -1132,116 +1099,6 @@ export default function BookingForm({
           </div>
 
           {/* Submit Button */}
-          {initialStoreSettings?.paymentGatewayEnabled === false && (
-            <div className="mt-4 mb-2">
-              <div className="bg-[#fff7dd] border border-gold rounded-2xl p-4 mb-4 text-[13px] leading-6 text-pine">
-                Payment gateway sedang dimatikan admin. Untuk menyelesaikan
-                booking, upload bukti transfer di bawah ini.
-              </div>
-
-              <div
-                className="mb-4"
-                style={{
-                  width: "100%",
-                  maxWidth: "340px",
-                  margin: "0 auto 1rem",
-                  border: "2px solid #d8cfa9",
-                  borderRadius: "24px",
-                  backgroundColor: "#ffffff",
-                  padding: "10px",
-                  boxShadow: "0 12px 30px -22px rgba(27, 58, 43, 0.55)",
-                  boxSizing: "border-box",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: "12px",
-                    marginBottom: "12px",
-                    padding: "12px 14px",
-                    borderRadius: "16px",
-                    backgroundColor: "#fff7dd",
-                  }}
-                >
-                  <div>
-                    <p className="m-0 font-baloo text-[15px] text-pine">
-                      Scan QRIS untuk Pembayaran
-                    </p>
-                    <p
-                      className="m-0 mt-1 text-[11px] text-muted"
-                      style={{ lineHeight: 1.35 }}
-                    >
-                      Setelah transfer, lanjut upload bukti pembayaran agar
-                      booking bisa diverifikasi admin.
-                    </p>
-                  </div>
-                  <div className="shrink-0 rounded-full bg-pine px-3 py-1 text-[11px] font-bold uppercase tracking-[0.08em] text-cream-2">
-                    QRIS
-                  </div>
-                </div>
-
-                <div
-                  style={{
-                    width: "100%",
-                    maxWidth: "260px",
-                    margin: "0 auto",
-                    border: "1px solid #ece2c0",
-                    borderRadius: "16px",
-                    backgroundColor: "#fffdf7",
-                    overflow: "hidden",
-                  }}
-                >
-                  <img
-                    src="/QRIS.jpeg"
-                    alt="Kode QRIS untuk pembayaran booking"
-                    width={1127}
-                    height={1600}
-                    style={{
-                      display: "block",
-                      width: "100%",
-                      height: "auto",
-                    }}
-                  />
-                </div>
-              </div>
-
-              <label
-                htmlFor="payment-proof"
-                className="block font-baloo font-semibold text-[13.5px] text-pine mb-1.5 tracking-wide"
-              >
-                Bukti Pembayaran
-              </label>
-              <input
-                id="payment-proof"
-                ref={paymentProofInputRef}
-                type="file"
-                accept=".jpg,.jpeg,.png,.webp,.pdf"
-                onChange={(event) => {
-                  const file = event.target.files?.[0] || null;
-
-                  if (file && file.size > MAX_PAYMENT_PROOF_BYTES) {
-                    setPaymentProof(null);
-                    setBookingError(
-                      `Ukuran bukti pembayaran maksimal ${MAX_PAYMENT_PROOF_LABEL}.`,
-                    );
-                    event.currentTarget.value = "";
-                    return;
-                  }
-
-                  setPaymentProof(file);
-                  setBookingError(null);
-                }}
-                className="w-full bg-white border-[1.5px] border-[#d8cfa9] rounded-xl px-3.5 py-2.5 text-[14px] text-ink outline-none transition-all duration-150 file:mr-3 file:rounded-lg file:border-0 file:bg-pine file:px-3 file:py-2 file:font-semibold file:text-cream-2"
-              />
-              <p className="text-[11.5px] text-muted mt-2 mb-0">
-                Format JPG, PNG, WEBP, atau PDF. Maksimal{" "}
-                {MAX_PAYMENT_PROOF_LABEL}.
-              </p>
-            </div>
-          )}
-
           <button
             type="button"
             id="submitBtn"
@@ -1252,7 +1109,7 @@ export default function BookingForm({
             {isSubmitting
               ? "Memproses..."
               : initialStoreSettings?.paymentGatewayEnabled === false
-                ? "Upload Bukti & Konfirmasi Booking"
+                ? "Booking"
                 : "Bayar & Konfirmasi Booking"}
           </button>
 

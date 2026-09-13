@@ -284,7 +284,7 @@ function renderToggle(
         >
           {paymentGatewayEnabled
             ? "Customer pays instantly with gateway checkout."
-            : "Customer uploads transfer proof for admin review."}
+          : "Customer confirms payment with admin through WhatsApp."}
         </div>
       </div>
 
@@ -374,6 +374,9 @@ export default function AdminPageClient({
   const [activeFilter, setActiveFilter] = useState<BookingFilter>("all");
   const [proofUploadDay, setProofUploadDay] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [confirmingBookingId, setConfirmingBookingId] = useState<string | null>(
+    null,
+  );
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -466,7 +469,7 @@ export default function AdminPageClient({
       setMessage(
         payload.paymentGatewayEnabled
           ? "Midtrans diaktifkan kembali."
-          : "Midtrans dimatikan. Form booking sekarang mewajibkan upload bukti transfer.",
+          : "Midtrans dimatikan. Customer akan diarahkan untuk konfirmasi lewat WhatsApp.",
       );
       router.refresh();
     } catch (err) {
@@ -477,6 +480,32 @@ export default function AdminPageClient({
       );
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleConfirmStaticBooking = async (bookingId: string) => {
+    setConfirmingBookingId(bookingId);
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/admin/bookings/${bookingId}/confirm`, {
+        method: "POST",
+      });
+      const payload = (await response.json().catch(() => null)) as {
+        error?: string;
+      } | null;
+
+      if (!response.ok) {
+        throw new Error(payload?.error || "Gagal mengonfirmasi booking.");
+      }
+
+      setMessage("Pembayaran dikonfirmasi. Booking sekarang berstatus reserved.");
+      setSelectedBookingId(null);
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Gagal mengonfirmasi booking.");
+    } finally {
+      setConfirmingBookingId(null);
     }
   };
 
@@ -533,8 +562,8 @@ export default function AdminPageClient({
               color: "#5c6b60",
             }}
           >
-            Login untuk mengatur apakah booking memakai Midtrans atau upload
-            bukti transfer manual.
+            Login untuk mengatur apakah booking memakai Midtrans atau konfirmasi
+            pembayaran manual melalui WhatsApp.
           </p>
 
           {error ? <div style={alertErrorStyle}>{error}</div> : null}
@@ -652,8 +681,8 @@ export default function AdminPageClient({
             }}
           >
             Saat aktif, customer bayar lewat Midtrans. Saat nonaktif, customer
-            wajib upload bukti transfer dan booking langsung masuk ke status
-            reservasi.
+            membayar QRIS lalu mengonfirmasi bukti pembayaran ke admin melalui
+            WhatsApp.
           </p>
 
           {renderToggle(paymentGatewayEnabled, isSaving, () =>
@@ -675,7 +704,7 @@ export default function AdminPageClient({
           >
             {paymentGatewayEnabled
               ? "Status: Midtrans aktif"
-              : "Status: Upload bukti transfer"}
+              : "Status: Konfirmasi WhatsApp"}
           </div>
         </div>
 
@@ -689,7 +718,7 @@ export default function AdminPageClient({
               color: "#1b3a2b",
             }}
           >
-            Booking Manual
+            Booking Manual &amp; WhatsApp
           </h2>
           <p
             style={{
@@ -699,8 +728,7 @@ export default function AdminPageClient({
               color: "#5c6b60",
             }}
           >
-            Review booking manual tanpa harus melihat semua bukti pembayaran
-            sekaligus.
+            Review bukti pembayaran manual atau konfirmasi booking WhatsApp.
           </p>
 
           <div className="admin-summary-grid">
@@ -847,7 +875,11 @@ export default function AdminPageClient({
                               {getVerificationLabel(booking)}
                             </span>
                             <span className="admin-select-indicator">
-                              {isSelected ? "Dipilih" : "Lihat bukti"}
+                              {isSelected
+                                ? "Dipilih"
+                                : booking.midtransOrderId?.startsWith("static-")
+                                  ? "Lihat booking"
+                                  : "Lihat bukti"}
                             </span>
                           </div>
                           <p className="admin-booking-name">
@@ -913,7 +945,9 @@ export default function AdminPageClient({
                               color: "#5c6b60",
                             }}
                           >
-                            Bukti Pembayaran
+                            {selectedBooking.midtransOrderId?.startsWith("static-")
+                              ? "Konfirmasi WhatsApp"
+                              : "Bukti Pembayaran"}
                           </p>
                           <h3
                             id="payment-proof-sheet-title"
@@ -1013,6 +1047,54 @@ export default function AdminPageClient({
                             >
                               Buka File Bukti
                             </a>
+                          </div>
+                        ) : selectedBooking.midtransOrderId?.startsWith("static-") ? (
+                          <div
+                            style={{
+                              textAlign: "center",
+                              padding: "24px",
+                            }}
+                          >
+                            <p
+                              style={{
+                                margin: 0,
+                                fontSize: "14px",
+                                lineHeight: "21px",
+                                color: "#5c6b60",
+                              }}
+                            >
+                              Bukti pembayaran dikonfirmasi melalui WhatsApp.
+                            </p>
+                            {selectedBooking.status === "pending_payment" ? (
+                              <button
+                                type="button"
+                                onClick={() => handleConfirmStaticBooking(selectedBooking.id)}
+                                disabled={confirmingBookingId === selectedBooking.id}
+                                style={{
+                                  marginTop: "16px",
+                                  border: 0,
+                                  borderRadius: "12px",
+                                  backgroundColor: "#1b3a2b",
+                                  padding: "10px 14px",
+                                  color: "#fbf7ec",
+                                  fontSize: "14px",
+                                  lineHeight: "18px",
+                                  fontWeight: 600,
+                                  cursor:
+                                    confirmingBookingId === selectedBooking.id
+                                      ? "wait"
+                                      : "pointer",
+                                  opacity:
+                                    confirmingBookingId === selectedBooking.id
+                                      ? 0.7
+                                      : 1,
+                                }}
+                              >
+                                {confirmingBookingId === selectedBooking.id
+                                  ? "Mengonfirmasi..."
+                                  : "Konfirmasi Pembayaran"}
+                              </button>
+                            ) : null}
                           </div>
                         ) : (
                           <div
