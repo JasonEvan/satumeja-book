@@ -95,6 +95,18 @@ function matchesFilter(booking: AdminBookingItem, filter: BookingFilter) {
   return getVerificationBucket(booking) === filter;
 }
 
+function matchesBookingSearch(booking: AdminBookingItem, query: string) {
+  const normalizedQuery = query.trim().toLowerCase();
+
+  if (!normalizedQuery) {
+    return true;
+  }
+
+  return [booking.id, booking.customerName]
+    .filter((value): value is string => Boolean(value))
+    .some((value) => value.toLowerCase().includes(normalizedQuery));
+}
+
 function getDateInputValue(value: string | null) {
   if (!value) {
     return null;
@@ -143,6 +155,32 @@ function getStatusBadgeColors(bucket: BookingFilter): React.CSSProperties {
         color: "#1b3a2b",
       };
   }
+}
+
+function getBookingConfirmationBadge(status: string | null) {
+  const normalizedStatus = normalizeStatus(status);
+
+  if (normalizedStatus === "pending_payment") {
+    return {
+      label: "Menunggu Konfirmasi",
+      style: {
+        backgroundColor: "#fff1c8",
+        color: "#1b3a2b",
+      },
+    };
+  }
+
+  if (normalizedStatus === "reserved" || normalizedStatus === "active") {
+    return {
+      label: "Sudah Dikonfirmasi",
+      style: {
+        backgroundColor: "#dbf3e4",
+        color: "#185437",
+      },
+    };
+  }
+
+  return null;
 }
 
 const shellStyle: React.CSSProperties = {
@@ -373,6 +411,7 @@ export default function AdminPageClient({
   );
   const [activeFilter, setActiveFilter] = useState<BookingFilter>("all");
   const [proofUploadDay, setProofUploadDay] = useState("");
+  const [bookingSearch, setBookingSearch] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [confirmingBookingId, setConfirmingBookingId] = useState<string | null>(
     null,
@@ -386,15 +425,9 @@ export default function AdminPageClient({
   const reviewCount = dayFilteredBookings.filter(
     (booking) => getVerificationBucket(booking) === "review",
   ).length;
-  const verifiedCount = dayFilteredBookings.filter(
-    (booking) => getVerificationBucket(booking) === "verified",
-  ).length;
-  const missingCount = dayFilteredBookings.filter(
-    (booking) => getVerificationBucket(booking) === "missing",
-  ).length;
   const filteredBookings = dayFilteredBookings.filter((booking) =>
     matchesFilter(booking, activeFilter),
-  );
+  ).filter((booking) => matchesBookingSearch(booking, bookingSearch));
   const selectedBooking =
     bookings.find((booking) => booking.id === selectedBookingId) ?? null;
 
@@ -746,16 +779,6 @@ export default function AdminPageClient({
               <strong className="admin-summary-value">{reviewCount}</strong>
               <span className="admin-summary-note">Bukti perlu dicek</span>
             </div>
-            <div className="admin-summary-card">
-              <span className="admin-summary-label">Verified</span>
-              <strong className="admin-summary-value">{verifiedCount}</strong>
-              <span className="admin-summary-note">Sudah terverifikasi</span>
-            </div>
-            <div className="admin-summary-card">
-              <span className="admin-summary-label">Missing</span>
-              <strong className="admin-summary-value">{missingCount}</strong>
-              <span className="admin-summary-note">Belum ada bukti</span>
-            </div>
           </div>
 
           <div className="admin-proof-date-filter">
@@ -783,15 +806,23 @@ export default function AdminPageClient({
             </div>
           </div>
 
+          <div className="admin-proof-date-filter">
+            <label htmlFor="booking-search">Cari booking</label>
+            <input
+              id="booking-search"
+              type="search"
+              value={bookingSearch}
+              onChange={(event) => {
+                setBookingSearch(event.target.value);
+                setSelectedBookingId(null);
+              }}
+              placeholder="Cari nama atau nomor booking"
+              style={inputStyle}
+            />
+          </div>
+
           <div className="admin-filter-row">
-            {(
-              [
-                "all",
-                "review",
-                "verified",
-                "missing",
-              ] as BookingFilter[]
-            ).map((filter) => {
+            {(["all", "review"] as BookingFilter[]).map((filter) => {
               const isActive = activeFilter === filter;
 
               return (
@@ -852,6 +883,10 @@ export default function AdminPageClient({
                     {filteredBookings.map((booking) => {
                       const isSelected = booking.id === selectedBooking?.id;
                       const verificationBucket = getVerificationBucket(booking);
+                      const showVerificationBadge = verificationBucket === "review";
+                      const confirmationBadge = getBookingConfirmationBadge(
+                        booking.status,
+                      );
                       return (
                         <button
                           key={booking.id}
@@ -866,14 +901,24 @@ export default function AdminPageClient({
                           }}
                         >
                           <div className="admin-booking-tags">
-                            <span
-                              className="admin-status-badge"
-                              style={{
-                                ...getStatusBadgeColors(verificationBucket),
-                              }}
-                            >
-                              {getVerificationLabel(booking)}
-                            </span>
+                            {showVerificationBadge ? (
+                              <span
+                                className="admin-status-badge"
+                                style={{
+                                  ...getStatusBadgeColors(verificationBucket),
+                                }}
+                              >
+                                {getVerificationLabel(booking)}
+                              </span>
+                            ) : null}
+                            {confirmationBadge ? (
+                              <span
+                                className="admin-status-badge"
+                                style={confirmationBadge.style}
+                              >
+                                {confirmationBadge.label}
+                              </span>
+                            ) : null}
                             <span className="admin-select-indicator">
                               {isSelected
                                 ? "Dipilih"
@@ -964,16 +1009,18 @@ export default function AdminPageClient({
                           </h3>
                         </div>
                         <div className="admin-proof-sheet-actions">
-                          <span
-                            className="admin-proof-sheet-badge"
-                            style={{
-                              ...getStatusBadgeColors(
-                                getVerificationBucket(selectedBooking),
-                              ),
-                            }}
-                          >
-                            {getVerificationLabel(selectedBooking)}
-                          </span>
+                          {getVerificationBucket(selectedBooking) === "review" ? (
+                            <span
+                              className="admin-proof-sheet-badge"
+                              style={{
+                                ...getStatusBadgeColors(
+                                  getVerificationBucket(selectedBooking),
+                                ),
+                              }}
+                            >
+                              {getVerificationLabel(selectedBooking)}
+                            </span>
+                          ) : null}
                           <button
                             type="button"
                             className="admin-proof-sheet-close"
