@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 
 const DOKU_SANDBOX_API_URL = "https://api-sandbox.doku.com";
+const DOKU_PRODUCTION_API_URL = "https://api.doku.com";
 const DOKU_CHECKOUT_PATH = "/checkout/v1/payment";
 
 type DokuCheckoutInput = {
@@ -21,12 +22,19 @@ export class DokuApiError extends Error {
   }
 }
 
-function getDokuCredentials() {
-  const clientId = process.env.DOKU_SANDBOX_CLIENT_ID;
-  const secretKey = process.env.DOKU_SANDBOX_SECRET_KEY;
+function getDokuCredentials(environment: "sandbox" | "production") {
+  const isProduction = environment === "production";
+  const clientId = isProduction
+    ? process.env.DOKU_PRODUCTION_CLIENT_ID
+    : process.env.DOKU_SANDBOX_CLIENT_ID;
+  const secretKey = isProduction
+    ? process.env.DOKU_PRODUCTION_SECRET_KEY
+    : process.env.DOKU_SANDBOX_SECRET_KEY;
   if (!clientId || !secretKey)
     throw new Error(
-      "DOKU sandbox belum dikonfigurasi. Tambahkan DOKU_SANDBOX_CLIENT_ID dan DOKU_SANDBOX_SECRET_KEY ke .env.",
+      isProduction
+        ? "DOKU production belum dikonfigurasi. Tambahkan DOKU_PRODUCTION_CLIENT_ID dan DOKU_PRODUCTION_SECRET_KEY ke environment deployment."
+        : "DOKU sandbox belum dikonfigurasi. Tambahkan DOKU_SANDBOX_CLIENT_ID dan DOKU_SANDBOX_SECRET_KEY ke .env.",
     );
   return { clientId, secretKey };
 }
@@ -61,8 +69,39 @@ export function verifyDokuSandboxSignature(input: {
   body: string;
   signature: string;
 }) {
-  const expectedClientId = process.env.DOKU_SANDBOX_CLIENT_ID;
-  const secretKey = process.env.DOKU_SANDBOX_SECRET_KEY;
+  return verifyDokuSignature(input, "sandbox");
+}
+
+export function verifyDokuProductionSignature(input: {
+  clientId: string;
+  requestId: string;
+  requestTimestamp: string;
+  requestTarget: string;
+  body: string;
+  signature: string;
+}) {
+  return verifyDokuSignature(input, "production");
+}
+
+function verifyDokuSignature(
+  input: {
+    clientId: string;
+    requestId: string;
+    requestTimestamp: string;
+    requestTarget: string;
+    body: string;
+    signature: string;
+  },
+  environment: "sandbox" | "production",
+) {
+  const expectedClientId =
+    environment === "production"
+      ? process.env.DOKU_PRODUCTION_CLIENT_ID
+      : process.env.DOKU_SANDBOX_CLIENT_ID;
+  const secretKey =
+    environment === "production"
+      ? process.env.DOKU_PRODUCTION_SECRET_KEY
+      : process.env.DOKU_SANDBOX_SECRET_KEY;
 
   if (!expectedClientId || !secretKey || input.clientId !== expectedClientId) {
     return false;
@@ -103,9 +142,13 @@ function createCallbackUrl(
   return url.toString();
 }
 
-export async function createDokuSandboxCheckout(input: DokuCheckoutInput) {
-  const { clientId, secretKey } = getDokuCredentials();
-  const invoiceNumber = `DOKUDEV${crypto.randomUUID().replace(/-/g, "").slice(0, 20)}`;
+async function createDokuCheckout(
+  input: DokuCheckoutInput,
+  environment: "sandbox" | "production",
+) {
+  const { clientId, secretKey } = getDokuCredentials(environment);
+  const invoicePrefix = environment === "production" ? "DOKUPROD" : "DOKUDEV";
+  const invoiceNumber = `${invoicePrefix}${crypto.randomUUID().replace(/-/g, "").slice(0, 20)}`;
   const phone = input.customerPhone?.replace(/\D/g, "");
   const payload = {
     order: {
@@ -135,15 +178,21 @@ export async function createDokuSandboxCheckout(input: DokuCheckoutInput) {
         : {}),
       line_items: [
         {
-          id: "doku-sandbox-booking",
-          name: "Booking test Satu Meja",
+          id:
+            environment === "production"
+              ? "doku-production-booking"
+              : "doku-sandbox-booking",
+          name:
+            environment === "production"
+              ? "Booking Satu Meja"
+              : "Booking test Satu Meja",
           quantity: 1,
           price: input.amount,
         },
       ],
     },
     payment: {
-      payment_due_date: 30,
+      payment_due_date: 15,
     },
     customer: {
       name: input.customerName,
@@ -162,7 +211,11 @@ export async function createDokuSandboxCheckout(input: DokuCheckoutInput) {
     requestTarget: DOKU_CHECKOUT_PATH,
     body,
   });
-  const response = await fetch(`${DOKU_SANDBOX_API_URL}${DOKU_CHECKOUT_PATH}`, {
+  const apiUrl =
+    environment === "production"
+      ? DOKU_PRODUCTION_API_URL
+      : DOKU_SANDBOX_API_URL;
+  const response = await fetch(`${apiUrl}${DOKU_CHECKOUT_PATH}`, {
     method: "POST",
     headers: {
       Accept: "application/json",
@@ -208,4 +261,12 @@ export async function createDokuSandboxCheckout(input: DokuCheckoutInput) {
     invoiceNumber,
     expiresAt: payment.expired_date ?? null,
   };
+}
+
+export async function createDokuSandboxCheckout(input: DokuCheckoutInput) {
+  return createDokuCheckout(input, "sandbox");
+}
+
+export async function createDokuProductionCheckout(input: DokuCheckoutInput) {
+  return createDokuCheckout(input, "production");
 }
