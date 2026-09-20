@@ -41,6 +41,145 @@ textarea {
   font-family: inherit;
 }
 
+.doku-test-page {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 2rem 1.25rem;
+  background: linear-gradient(135deg, #f7f1e1, #e7efe9);
+}
+
+.doku-test-card {
+  width: min(100%, 34rem);
+  padding: clamp(1.5rem, 4vw, 2.5rem);
+  border: 1px solid #d8cfa9;
+  border-radius: 1.5rem;
+  background: #fffdf7;
+  box-shadow: 0 20px 50px -30px rgba(27, 58, 43, 0.55);
+}
+
+.doku-test-badge {
+  display: inline-block;
+  margin: 0;
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  background: #efe1b8;
+  color: var(--color-pine);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.doku-test-card h1 {
+  margin: 0.85rem 0 0;
+  color: var(--color-pine);
+  font-family: var(--font-baloo);
+  font-size: clamp(2rem, 6vw, 2.65rem);
+  line-height: 1.05;
+}
+
+.doku-test-intro,
+.doku-test-note {
+  color: var(--color-muted);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.doku-test-form {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.doku-test-form label {
+  display: grid;
+  gap: 0.4rem;
+  color: var(--color-pine);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.doku-test-form label span {
+  color: var(--color-muted);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.doku-test-form input {
+  width: 100%;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid #cfc49e;
+  background: #fff;
+  color: var(--color-ink);
+}
+
+.doku-test-form button {
+  min-height: 48px;
+  border: 0;
+  border-radius: 0.75rem;
+  background: var(--color-pine);
+  color: #fff;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.doku-test-form button:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.doku-test-link {
+  display: inline-flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1rem;
+  padding: 0.7rem 1rem;
+  border-radius: 0.75rem;
+  background: var(--color-pine);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.doku-test-details {
+  display: grid;
+  gap: 0.7rem;
+  margin: 1.5rem 0;
+}
+
+.doku-test-details div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 0.7rem;
+  border-bottom: 1px solid #e6ddbd;
+}
+
+.doku-test-details dt {
+  color: var(--color-muted);
+  font-size: 0.85rem;
+}
+
+.doku-test-details dd {
+  margin: 0;
+  color: var(--color-pine);
+  font-size: 0.85rem;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
+.doku-test-error {
+  margin: 0;
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+  background: #fde8e7;
+  color: var(--color-danger);
+  font-size: 0.85rem;
+}
+
 /* Reset Safari default form controls */
 input[type="date"],
 input[type="text"],
