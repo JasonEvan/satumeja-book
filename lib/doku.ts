@@ -10,6 +10,7 @@ type DokuCheckoutInput = {
   customerEmail: string;
   customerPhone?: string;
   callbackUrl?: string;
+  notificationUrl?: string;
 };
 
 export class DokuApiError extends Error {
@@ -190,6 +191,13 @@ async function createDokuCheckout(
     payment: {
       payment_due_date: 15,
     },
+    ...(input.notificationUrl
+      ? {
+          additional_info: {
+            override_notification_url: input.notificationUrl,
+          },
+        }
+      : {}),
     customer: {
       name: input.customerName,
       email: input.customerEmail,

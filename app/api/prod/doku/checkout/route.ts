@@ -16,6 +16,18 @@ function getCallbackUrl() {
   }
 }
 
+function getNotificationUrl() {
+  const configuredUrl = process.env.DOKU_PRODUCTION_NOTIFICATION_URL;
+  if (!configuredUrl) return undefined;
+
+  try {
+    const url = new URL(configuredUrl);
+    return url.protocol === "https:" ? url.toString() : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as Record<string, unknown>;
@@ -53,6 +65,7 @@ export async function POST(request: Request) {
       customerEmail,
       customerPhone,
       callbackUrl: getCallbackUrl(),
+      notificationUrl: getNotificationUrl(),
     });
     await createDokuProductionTransaction({
       invoiceNumber: checkout.invoiceNumber,
