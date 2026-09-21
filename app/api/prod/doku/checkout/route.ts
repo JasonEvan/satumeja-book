@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createDokuProductionCheckout, DokuApiError } from "@/lib/doku";
+import { createDokuProductionTransaction } from "@/lib/doku-production-transactions";
 
 export const runtime = "nodejs";
 
@@ -52,6 +53,11 @@ export async function POST(request: Request) {
       customerEmail,
       customerPhone,
       callbackUrl: getCallbackUrl(),
+    });
+    await createDokuProductionTransaction({
+      invoiceNumber: checkout.invoiceNumber,
+      amount,
+      expiresAt: checkout.expiresAt,
     });
     return NextResponse.json(checkout);
   } catch (error) {

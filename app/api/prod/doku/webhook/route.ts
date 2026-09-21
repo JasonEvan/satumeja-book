@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { verifyDokuProductionSignature } from "@/lib/doku";
+import { updateDokuProductionTransactionFromWebhook } from "@/lib/doku-production-transactions";
 
 export const runtime = "nodejs";
 
@@ -68,6 +69,21 @@ export async function POST(request: Request) {
     paidAt: typeof notification.transaction?.date === "string" ? notification.transaction.date : null,
     dokuRequestId: requestId,
   };
+  try {
+    const transaction = await updateDokuProductionTransactionFromWebhook(event);
+    if (!transaction) {
+      console.warn("DOKU production webhook invoice was not found", {
+        invoiceNumber,
+        dokuRequestId: requestId,
+      });
+    }
+  } catch (error) {
+    console.error("DOKU production webhook status update failed", error);
+    return NextResponse.json(
+      { error: "Unable to persist DOKU transaction status." },
+      { status: 503 },
+    );
+  }
   if (status === "SUCCESS") {
     console.info("DOKU production payment succeeded", event);
   } else {

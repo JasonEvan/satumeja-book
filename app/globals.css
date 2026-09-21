@@ -143,6 +143,19 @@ textarea {
   text-decoration: none;
 }
 
+.doku-status-button {
+  min-height: 48px;
+  margin-top: 1rem;
+  padding: 0.7rem 1rem;
+  border: 1px solid var(--color-pine);
+  border-radius: 0.75rem;
+  background: transparent;
+  color: var(--color-pine);
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
 .doku-test-details {
   display: grid;
   gap: 0.7rem;

@@ -128,14 +128,12 @@ function createCallbackUrl(
   callbackUrl: string,
   invoiceNumber: string,
   amount: number,
-  result?: "success" | "cancel",
+  result?: "cancel",
 ) {
   const url = new URL(callbackUrl);
-
   if (result) {
     url.pathname = `${url.pathname.replace(/\/$/, "")}/${result}`;
   }
-
   url.searchParams.set("invoice_number", invoiceNumber);
   url.searchParams.set("amount", String(amount));
 
@@ -150,30 +148,28 @@ async function createDokuCheckout(
   const invoicePrefix = environment === "production" ? "DOKUPROD" : "DOKUDEV";
   const invoiceNumber = `${invoicePrefix}${crypto.randomUUID().replace(/-/g, "").slice(0, 20)}`;
   const phone = input.customerPhone?.replace(/\D/g, "");
+  const callbackUrl = input.callbackUrl
+    ? createCallbackUrl(input.callbackUrl, invoiceNumber, input.amount)
+    : undefined;
+  const cancelCallbackUrl = input.callbackUrl
+    ? createCallbackUrl(
+        input.callbackUrl,
+        invoiceNumber,
+        input.amount,
+        environment === "production" ? undefined : "cancel",
+      )
+    : undefined;
   const payload = {
     order: {
       amount: input.amount,
       invoice_number: invoiceNumber,
       currency: "IDR",
       auto_redirect: true,
-      ...(input.callbackUrl
+      ...(callbackUrl
         ? {
-            callback_url: createCallbackUrl(
-              input.callbackUrl,
-              invoiceNumber,
-              input.amount,
-            ),
-            callback_url_cancel: createCallbackUrl(
-              input.callbackUrl,
-              invoiceNumber,
-              input.amount,
-              "cancel",
-            ),
-            callback_url_result: createCallbackUrl(
-              input.callbackUrl,
-              invoiceNumber,
-              input.amount,
-            ),
+            callback_url: callbackUrl,
+            callback_url_cancel: cancelCallbackUrl,
+            callback_url_result: callbackUrl,
           }
         : {}),
       line_items: [
