@@ -5,6 +5,12 @@ const REPORT_OUTLET_ID = "f86dbefa-46c2-446d-ae8f-8b0e0aeecd8b";
 
 export type RevenueSource = "fnb" | "rental";
 
+export interface RentalMenuAllocation {
+  menuItemId: string;
+  menuItemName: string;
+  amount: number;
+}
+
 export interface RevenueTransaction {
   id: string;
   source: RevenueSource;
@@ -15,6 +21,7 @@ export interface RevenueTransaction {
   paymentMethod: string | null;
   menuItemId?: string | null;
   menuItemName?: string | null;
+  rentalMenuAllocations?: RentalMenuAllocation[];
 }
 
 export interface RentalMenuRevenue {
@@ -24,43 +31,35 @@ export interface RentalMenuRevenue {
   bookings: number;
 }
 
+type MenuItemRow = {
+  name?: string | null;
+  item_type?: string | null;
+  categories?:
+    | { name?: string | null; icon_key?: string | null }
+    | { name?: string | null; icon_key?: string | null }[]
+    | null;
+};
+
+type OrderItemRow = {
+  menu_item_id: string | null;
+  quantity: number | string | null;
+  unit_price: number | string | null;
+  menu_items: MenuItemRow | MenuItemRow[] | null;
+};
+
 type OrderRow = {
   id: string;
   order_number: string | null;
+  table_name: string | null;
   total: number | string | null;
   created_at: string;
   payment_status: string | null;
   payments: { method?: string | null } | { method?: string | null }[] | null;
+  order_items: OrderItemRow[] | null;
 };
 
-type RentalRow = {
-  id: string;
-  gross_amount: number | string | null;
-  started_at: string | null;
-  actual_ended_at: string | null;
-  payment_method: string | null;
-  assets:
-    | {
-        menu_item_id?: string | null;
-        asset_name?: string | null;
-        menu_items?:
-          | { name?: string | null }
-          | { name?: string | null }[]
-          | null;
-      }
-    | {
-        menu_item_id?: string | null;
-        asset_name?: string | null;
-        menu_items?:
-          | { name?: string | null }
-          | { name?: string | null }[]
-          | null;
-      }[]
-    | null;
-};
-
-function first<T>(value: T | T[] | null | undefined): T | null {
-  return Array.isArray(value) ? (value[0] ?? null) : (value ?? null);
+function list<T>(value: T | T[] | null | undefined): T[] {
+  return Array.isArray(value) ? value : value ? [value] : [];
 }
 
 function numberValue(value: number | string | null): number {
@@ -68,86 +67,101 @@ function numberValue(value: number | string | null): number {
   return Number.isFinite(result) ? result : 0;
 }
 
+function isRentalMenuItem(item: OrderItemRow): boolean {
+  const menuItem = list(item.menu_items)[0];
+  const category = list(menuItem?.categories)[0];
+
+  return (
+    menuItem?.item_type === "rental" ||
+    category?.icon_key === "rental" ||
+    category?.name?.toLowerCase() === "rental"
+  );
+}
+
 /**
- * POS rows count as revenue only after a payment record exists. Rental rows
- * count only when the operational rental has been completed. All timestamps
- * remain ISO/UTC here; presentation and period bucketing convert to WIB.
+ * This deliberately mirrors the owner dashboard in Flow POS:
+ * - revenue comes from paid orders, never the operational rentals table;
+ * - a rental order has no table_name;
+ * - the reporting date is orders.created_at (formatted/bucketed as WIB later).
  */
 export async function getRevenueTransactions(): Promise<RevenueTransaction[]> {
   const admin = createAdminClient();
-  const [ordersResult, rentalsResult] = await Promise.all([
-    admin
-      .from("orders")
-      .select(
-        "id, order_number, total, created_at, payment_status, payments!inner(method)",
-      )
-      .eq("outlet_id", REPORT_OUTLET_ID)
-      .order("created_at", { ascending: false }),
-    admin
-      .from("rentals")
-      .select(
-        "id, gross_amount, started_at, actual_ended_at, payment_method, assets(menu_item_id, asset_name, menu_items(name))",
-      )
-      .eq("outlet_id", REPORT_OUTLET_ID)
-      .eq("status", "completed")
-      .order("actual_ended_at", { ascending: false }),
-  ]);
+  const { data, error } = await admin
+    .from("orders")
+    .select(
+      "id, order_number, table_name, total, created_at, payment_status, payments(method), order_items(menu_item_id, quantity, unit_price, menu_items(name, item_type, categories(name, icon_key)))",
+    )
+    .eq("outlet_id", REPORT_OUTLET_ID)
+    .order("created_at", { ascending: false });
 
-  if (ordersResult.error) {
-    throw new Error(
-      `Gagal memuat pendapatan FnB: ${ordersResult.error.message}`,
-    );
+  if (error) {
+    throw new Error(`Gagal memuat pendapatan: ${error.message}`);
   }
 
-  if (rentalsResult.error) {
-    throw new Error(
-      `Gagal memuat pendapatan rental: ${rentalsResult.error.message}`,
-    );
-  }
+  return ((data ?? []) as OrderRow[])
+    .filter((order) => order.payment_status !== "unpaid")
+    .map((order) => {
+      const source: RevenueSource =
+        order.table_name === null ? "rental" : "fnb";
+      const rentalItems = list(order.order_items).filter(isRentalMenuItem);
+      const lineTotal = rentalItems.reduce(
+        (total, item) =>
+          total + numberValue(item.quantity) * numberValue(item.unit_price),
+        0,
+      );
+      let remaining = numberValue(order.total);
 
-  const fnb = ((ordersResult.data ?? []) as OrderRow[]).map((order) => {
-    const payment = first(order.payments);
+      const rentalMenuAllocations = rentalItems.map((item, index) => {
+        const lineValue =
+          numberValue(item.quantity) * numberValue(item.unit_price);
+        const amount =
+          index === rentalItems.length - 1
+            ? remaining
+            : lineTotal > 0
+              ? Math.trunc((numberValue(order.total) * lineValue) / lineTotal)
+              : 0;
+        remaining -= amount;
+        const menuItem = list(item.menu_items)[0];
 
-    return {
-      id: order.id,
-      source: "fnb" as const,
-      occurredAt: order.created_at,
-      amount: numberValue(order.total),
-      reference: order.order_number || order.id.slice(0, 8),
-      description: "Pesanan FnB",
-      paymentMethod: payment?.method ?? null,
-    };
-  });
-
-  const rentals = ((rentalsResult.data ?? []) as RentalRow[]).flatMap(
-    (rental) => {
-      const asset = first(rental.assets);
-      const menuItem = first(asset?.menu_items);
-      // A completed rental without either timestamp cannot be placed in a period.
-      const occurredAt = rental.actual_ended_at || rental.started_at;
-
-      if (!occurredAt) return [];
-
-      return [
-        {
-          id: rental.id,
-          source: "rental" as const,
-          occurredAt,
-          amount: numberValue(rental.gross_amount),
-          reference: rental.id.slice(0, 8),
-          description: asset?.asset_name || "Rental",
-          paymentMethod: rental.payment_method,
-          menuItemId: asset?.menu_item_id ?? null,
+        return {
+          menuItemId: item.menu_item_id || "unknown",
           menuItemName: menuItem?.name || "Menu rental tidak diketahui",
-        },
-      ];
-    },
-  );
+          amount,
+        };
+      });
 
-  return [...fnb, ...rentals].sort(
-    (a, b) =>
-      new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime(),
-  );
+      return {
+        id: order.id,
+        source,
+        occurredAt: order.created_at,
+        amount: numberValue(order.total),
+        reference: order.order_number || order.id.slice(0, 8),
+        description: source === "rental" ? "Rental" : "Pesanan FnB",
+        // Flutter uses the most recent payment when more than one is returned.
+        paymentMethod: list(order.payments).at(-1)?.method ?? null,
+        rentalMenuAllocations:
+          source === "rental" ? rentalMenuAllocations : undefined,
+      };
+    });
+}
+
+/** Turns each proportional allocation into a row for the rental-menu report. */
+export function getRentalMenuTransactions(
+  transactions: RevenueTransaction[],
+): RevenueTransaction[] {
+  return transactions.flatMap((transaction) => {
+    if (transaction.source !== "rental") return [];
+
+    return (transaction.rentalMenuAllocations ?? []).map((allocation, index) => ({
+      ...transaction,
+      id: `${transaction.id}-${index}`,
+      amount: allocation.amount,
+      description: "Rental",
+      menuItemId: allocation.menuItemId,
+      menuItemName: allocation.menuItemName,
+      rentalMenuAllocations: undefined,
+    }));
+  });
 }
 
 export function summarizeRentalMenuRevenue(
