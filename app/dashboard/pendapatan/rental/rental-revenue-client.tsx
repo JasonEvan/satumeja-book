@@ -3,22 +3,41 @@
 import { useMemo, useState } from "react";
 
 import {
+  matchesPeriod,
+  ReportPeriodFilter,
+  type PeriodFilter,
+} from "@/app/dashboard/report-period-filter";
+import {
   formatRupiah,
   formatWibDateTime,
-  type RentalMenuRevenue,
+  summarizeRentalMenuRevenue,
   type RevenueTransaction,
 } from "@/lib/revenue-reports";
 
-export default function RentalRevenueClient({ menuRevenue, rentals }: { menuRevenue: RentalMenuRevenue[]; rentals: RevenueTransaction[] }) {
+export default function RentalRevenueClient({ rentals }: { rentals: RevenueTransaction[] }) {
   const [selectedMenuId, setSelectedMenuId] = useState<string | null>(null);
-  const selectedMenu = menuRevenue.find((menu) => menu.menuItemId === selectedMenuId) || null;
-  const selectedRentals = useMemo(() => selectedMenuId ? rentals.filter((rental) => rental.menuItemId === selectedMenuId) : rentals, [rentals, selectedMenuId]);
-  const totalRevenue = menuRevenue.reduce((sum, menu) => sum + menu.revenue, 0);
-  const totalBookings = menuRevenue.reduce((sum, menu) => sum + menu.bookings, 0);
-  const maxRevenue = Math.max(...menuRevenue.map((menu) => menu.revenue), 1);
+  const [period, setPeriod] = useState<PeriodFilter>({ mode: "all" });
+  const filteredRentals = useMemo(
+    () => rentals.filter((rental) => matchesPeriod(rental, period)),
+    [period, rentals],
+  );
+  const filteredMenuRevenue = useMemo(
+    () => summarizeRentalMenuRevenue(filteredRentals),
+    [filteredRentals],
+  );
+  const selectedMenu = filteredMenuRevenue.find((menu) => menu.menuItemId === selectedMenuId) || null;
+  const selectedRentals = useMemo(() => selectedMenuId ? filteredRentals.filter((rental) => rental.menuItemId === selectedMenuId) : filteredRentals, [filteredRentals, selectedMenuId]);
+  const totalRevenue = filteredMenuRevenue.reduce((sum, menu) => sum + menu.revenue, 0);
+  const totalBookings = filteredMenuRevenue.reduce((sum, menu) => sum + menu.bookings, 0);
+  const maxRevenue = Math.max(...filteredMenuRevenue.map((menu) => menu.revenue), 1);
+
+  function handlePeriodChange(nextPeriod: PeriodFilter) {
+    setPeriod(nextPeriod);
+    setSelectedMenuId(null);
+  }
 
   return (
-    <main className="relative mx-auto w-full max-w-[90rem] px-4 py-7 sm:px-7 lg:px-10 lg:py-10 xl:px-12">
+    <main className="relative mx-auto w-full max-w-[90rem] px-4 py-7 pb-12 sm:px-7 lg:px-10 lg:py-10 xl:px-12">
       <div className="pointer-events-none absolute top-0 right-0 h-72 w-72 rounded-full bg-gold/[0.06] blur-3xl" aria-hidden="true" />
       <header className="relative mb-8 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
@@ -31,16 +50,16 @@ export default function RentalRevenueClient({ menuRevenue, rentals }: { menuReve
 
       <section className="grid gap-4 sm:grid-cols-3">
         <StatCard dark label="Total pendapatan rental" value={formatRupiah(totalRevenue)} note="Dari seluruh menu" icon={<WalletIcon/>} />
-        <StatCard label="Rental selesai" value={totalBookings.toLocaleString("id-ID")} note={`${menuRevenue.length} menu aktif`} icon={<DiceIcon/>} />
-        <StatCard gold label="Menu terbaik" value={menuRevenue[0]?.menuItemName || "—"} note={menuRevenue[0] ? formatRupiah(menuRevenue[0].revenue) : "Belum ada data"} icon={<TrophyIcon/>} />
+        <StatCard label="Rental selesai" value={totalBookings.toLocaleString("id-ID")} note={`${filteredMenuRevenue.length} menu aktif`} icon={<DiceIcon/>} />
+        <StatCard gold label="Menu terbaik" value={filteredMenuRevenue[0]?.menuItemName || "—"} note={filteredMenuRevenue[0] ? formatRupiah(filteredMenuRevenue[0].revenue) : "Belum ada data"} icon={<TrophyIcon/>} />
       </section>
 
       <section className="mt-5 rounded-[1.75rem] border border-[#ded3b1] bg-[#fffdf8] p-5 shadow-[0_18px_45px_-35px_rgba(27,58,43,0.45)] sm:p-7">
-        <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-[10px] font-bold tracking-[0.18em] text-[#98752b] uppercase">Peringkat performa</p><h2 className="mt-1 font-baloo text-2xl font-bold text-pine">Pendapatan per menu</h2></div><p className="text-xs text-muted">Klik salah satu menu untuk melihat detail booking</p></div>
+        <div className="mb-6 flex flex-col gap-4"><div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-[10px] font-bold tracking-[0.18em] text-[#98752b] uppercase">Peringkat performa</p><h2 className="mt-1 font-baloo text-2xl font-bold text-pine">Pendapatan per menu</h2></div><p className="text-xs text-muted">Klik salah satu menu untuk melihat detail booking</p></div><ReportPeriodFilter filter={period} onChange={handlePeriodChange} transactions={rentals}/></div>
 
-        {menuRevenue.length ? (
+        {filteredMenuRevenue.length ? (
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {menuRevenue.map((menu, index) => {
+            {filteredMenuRevenue.map((menu, index) => {
               const active = selectedMenuId === menu.menuItemId;
               const percentage = Math.round((menu.revenue / maxRevenue) * 100);
               return (

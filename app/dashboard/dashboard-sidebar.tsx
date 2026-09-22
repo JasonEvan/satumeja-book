@@ -64,7 +64,7 @@ export default function DashboardSidebar() {
         <div className="absolute bottom-10 -left-24 h-56 w-56 rounded-full bg-white/[0.025]" />
       </div>
 
-      <div className="relative flex items-center justify-between px-5 py-4 lg:px-7 lg:pt-8 lg:pb-6">
+      <div className="relative flex items-center justify-between gap-3 px-4 py-3.5 sm:px-5 sm:py-4 lg:px-7 lg:pt-8 lg:pb-6">
         <Link className="flex items-center gap-3" href="/dashboard">
           <span className="grid h-10 w-10 place-items-center rounded-2xl bg-gold text-pine shadow-[0_8px_24px_rgba(201,162,75,0.25)]">
             <span className="font-baloo text-xl font-extrabold">SM</span>
@@ -95,13 +95,13 @@ export default function DashboardSidebar() {
 
       <nav
         aria-label="Navigasi dashboard"
-        className="relative flex gap-2 overflow-x-auto px-4 pb-4 lg:mt-4 lg:flex-col lg:overflow-visible lg:px-5"
+        className="relative flex snap-x snap-mandatory gap-2 overflow-x-auto px-3 pb-3 sm:px-4 sm:pb-4 lg:mt-4 lg:flex-col lg:overflow-visible lg:px-5"
       >
         {links.map((link) => {
           const active = activeHref === link.href;
           return (
             <Link
-              className={`group relative flex shrink-0 items-center gap-3 rounded-2xl px-4 py-3 transition-all duration-200 lg:w-full ${active ? "bg-cream text-pine shadow-[0_12px_32px_rgba(9,30,19,0.22)]" : "text-cream/65 hover:bg-white/[0.07] hover:text-cream"}`}
+              className={`group relative flex shrink-0 snap-start items-center gap-2.5 rounded-2xl px-3 py-2.5 transition-all duration-200 sm:px-4 sm:py-3 lg:w-full ${active ? "bg-cream text-pine shadow-[0_12px_32px_rgba(9,30,19,0.22)]" : "text-cream/65 hover:bg-white/[0.07] hover:text-cream"}`}
               href={link.href}
               key={link.href}
             >

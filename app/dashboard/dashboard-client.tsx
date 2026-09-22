@@ -115,7 +115,7 @@ export default function DashboardClient({
     : 0;
 
   return (
-    <main className="relative mx-auto w-full max-w-[90rem] px-4 py-7 sm:px-7 lg:px-10 lg:py-10 xl:px-12">
+    <main className="relative mx-auto w-full max-w-[90rem] px-4 py-7 pb-12 sm:px-7 lg:px-10 lg:py-10 xl:px-12">
       <div
         className="pointer-events-none absolute top-0 right-0 h-72 w-72 rounded-full bg-gold/[0.06] blur-3xl"
         aria-hidden="true"
@@ -216,7 +216,7 @@ export default function DashboardClient({
             </div>
           </div>
           {chartData.length ? (
-            <div className="h-[22rem] px-1 pt-5 pr-3 pb-3 sm:px-4 sm:pr-6">
+            <div className="h-72 px-1 pt-5 pr-3 pb-3 sm:h-[22rem] sm:px-4 sm:pr-6">
               <ResponsiveContainer height="100%" width="100%">
                 <AreaChart
                   data={chartData}
