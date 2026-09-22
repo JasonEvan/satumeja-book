@@ -10,7 +10,7 @@ export type PeriodFilter =
 
 type PeriodMode = PeriodFilter["mode"];
 
-function wibDateKey(value: string) {
+export function wibDateKey(value: string) {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: REPORT_TIME_ZONE,
     year: "numeric",
@@ -20,6 +20,10 @@ function wibDateKey(value: string) {
   const part = (type: Intl.DateTimeFormatPartTypes) =>
     parts.find((item) => item.type === type)?.value || "";
   return `${part("year")}-${part("month")}-${part("day")}`;
+}
+
+export function todayWibDateKey() {
+  return wibDateKey(new Date().toISOString());
 }
 
 export function matchesPeriod(transaction: RevenueTransaction, filter: PeriodFilter) {

@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import {
   matchesPeriod,
   ReportPeriodFilter,
+  todayWibDateKey,
   type PeriodFilter,
 } from "@/app/dashboard/report-period-filter";
 import {
@@ -17,7 +18,10 @@ import { downloadRevenueExcel } from "@/lib/revenue-excel";
 
 export default function RentalRevenueClient({ rentals }: { rentals: RevenueTransaction[] }) {
   const [selectedMenuId, setSelectedMenuId] = useState<string | null>(null);
-  const [period, setPeriod] = useState<PeriodFilter>({ mode: "all" });
+  const [period, setPeriod] = useState<PeriodFilter>(() => ({
+    mode: "day",
+    value: todayWibDateKey(),
+  }));
   const [isExporting, setIsExporting] = useState(false);
   const filteredRentals = useMemo(
     () => rentals.filter((rental) => matchesPeriod(rental, period)),

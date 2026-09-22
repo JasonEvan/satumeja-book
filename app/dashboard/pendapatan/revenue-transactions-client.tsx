@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import {
   matchesPeriod,
   ReportPeriodFilter,
+  todayWibDateKey,
   type PeriodFilter,
 } from "@/app/dashboard/report-period-filter";
 import {
@@ -23,7 +24,10 @@ const filterLabels: Record<SourceFilter, string> = { all: "Semua", fnb: "FnB", r
 export default function RevenueTransactionsClient({ transactions }: { transactions: RevenueTransaction[] }) {
   const [filter, setFilter] = useState<SourceFilter>("all");
   const [query, setQuery] = useState("");
-  const [period, setPeriod] = useState<PeriodFilter>({ mode: "all" });
+  const [period, setPeriod] = useState<PeriodFilter>(() => ({
+    mode: "day",
+    value: todayWibDateKey(),
+  }));
   const [exportScope, setExportScope] = useState<ExportScope>("visible");
   const [isExporting, setIsExporting] = useState(false);
   const periodTransactions = useMemo(
