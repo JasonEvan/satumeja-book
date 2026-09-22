@@ -13,8 +13,10 @@ import {
   type RevenueSource,
   type RevenueTransaction,
 } from "@/lib/revenue-reports";
+import { downloadRevenueExcel } from "@/lib/revenue-excel";
 
 type SourceFilter = "all" | RevenueSource;
+type ExportScope = "visible" | "fnb" | "rental" | "separated";
 
 const filterLabels: Record<SourceFilter, string> = { all: "Semua", fnb: "FnB", rental: "Rental" };
 
@@ -22,6 +24,8 @@ export default function RevenueTransactionsClient({ transactions }: { transactio
   const [filter, setFilter] = useState<SourceFilter>("all");
   const [query, setQuery] = useState("");
   const [period, setPeriod] = useState<PeriodFilter>({ mode: "all" });
+  const [exportScope, setExportScope] = useState<ExportScope>("visible");
+  const [isExporting, setIsExporting] = useState(false);
   const periodTransactions = useMemo(
     () => transactions.filter((transaction) => matchesPeriod(transaction, period)),
     [period, transactions],
@@ -34,10 +38,34 @@ export default function RevenueTransactionsClient({ transactions }: { transactio
       return matchesSource && matchesQuery;
     });
   }, [filter, periodTransactions, query]);
+  const exportTransactions = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+    const searched = periodTransactions.filter((transaction) => !normalizedQuery || [transaction.reference, transaction.description, transaction.paymentMethod || ""].some((value) => value.toLowerCase().includes(normalizedQuery)));
+    if (exportScope === "visible") return visible;
+    if (exportScope === "fnb") return searched.filter((transaction) => transaction.source === "fnb");
+    if (exportScope === "rental") return searched.filter((transaction) => transaction.source === "rental");
+    return searched;
+  }, [exportScope, periodTransactions, query, visible]);
 
   const total = visible.reduce((sum, transaction) => sum + transaction.amount, 0);
   const fnbTotal = periodTransactions.filter((item) => item.source === "fnb").reduce((sum, item) => sum + item.amount, 0);
   const rentalTotal = periodTransactions.filter((item) => item.source === "rental").reduce((sum, item) => sum + item.amount, 0);
+
+  async function exportExcel() {
+    if (!exportTransactions.length) return;
+    setIsExporting(true);
+    try {
+      await downloadRevenueExcel({
+        transactions: exportTransactions,
+        scope: exportScope,
+        periodLabel: formatExportPeriod(period),
+        reportTitle: "Laporan Pendapatan Satu Meja",
+        filePrefix: "pendapatan-satu-meja",
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  }
 
   return (
     <main className="relative mx-auto w-full max-w-[90rem] px-4 py-7 pb-12 sm:px-7 lg:px-10 lg:py-10 xl:px-12">
@@ -67,6 +95,15 @@ export default function RevenueTransactionsClient({ transactions }: { transactio
             </label>
             <div className="grid grid-cols-3 rounded-xl border border-[#e3d9bd] bg-[#f7f1e2] p-1 sm:inline-flex sm:gap-0">
               {(["all", "fnb", "rental"] as SourceFilter[]).map((item) => <button className={`rounded-lg px-2 py-2 text-xs font-bold transition-all sm:px-3.5 ${filter === item ? "bg-pine text-white shadow-sm" : "text-muted hover:text-pine"}`} key={item} onClick={() => setFilter(item)} type="button">{filterLabels[item]}</button>)}
+            </div>
+            <div className="flex w-full gap-2 sm:w-auto">
+              <select aria-label="Cakupan ekspor Excel" className="h-10 min-w-0 flex-1 rounded-xl border border-[#dfd5b9] bg-white px-3 text-xs font-semibold text-pine outline-none transition focus:border-gold focus:ring-4 focus:ring-gold/10 sm:w-48" onChange={(event) => setExportScope(event.target.value as ExportScope)} value={exportScope}>
+                <option value="visible">Sesuai tampilan</option>
+                <option value="separated">FnB & rental terpisah</option>
+                <option value="fnb">FnB saja</option>
+                <option value="rental">Rental saja</option>
+              </select>
+              <button className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-pine px-3.5 text-xs font-bold text-white transition hover:bg-[#29543b] disabled:cursor-not-allowed disabled:opacity-50" disabled={!exportTransactions.length || isExporting} onClick={exportExcel} type="button"><DownloadIcon />{isExporting ? "Membuat..." : "Excel"}</button>
             </div>
           </div>
         </div>
@@ -121,5 +158,13 @@ function formatPaymentMethod(method: string | null) {
   return method.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
+function formatExportPeriod(period: PeriodFilter) {
+  if (period.mode === "all") return "Semua periode";
+  if (period.mode === "day") return new Intl.DateTimeFormat("id-ID", { day: "2-digit", month: "long", year: "numeric", timeZone: "Asia/Jakarta" }).format(new Date(`${period.value}T00:00:00+07:00`));
+  if (period.mode === "month") return new Intl.DateTimeFormat("id-ID", { month: "long", year: "numeric", timeZone: "Asia/Jakarta" }).format(new Date(`${period.value}-01T00:00:00+07:00`));
+  return period.value;
+}
+
 function SearchIcon() { return <svg fill="none" height="17" viewBox="0 0 24 24" width="17"><circle cx="11" cy="11" r="6.5" stroke="currentColor" strokeWidth="1.8"/><path d="m16 16 4 4" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8"/></svg>; }
+function DownloadIcon() { return <svg fill="none" height="16" viewBox="0 0 24 24" width="16"><path d="M12 3v11m0 0 4-4m-4 4-4-4M5 17v2a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8"/></svg>; }
 function TransactionIcon({ source }: { source: RevenueSource }) { return source === "fnb" ? <svg fill="none" height="18" viewBox="0 0 24 24" width="18"><path d="M7 3v7M4.5 3v4.5A2.5 2.5 0 0 0 7 10a2.5 2.5 0 0 0 2.5-2.5V3M7 10v11M16.5 13V3c2.2 1.5 3.2 3.5 3 6-.1 1.8-1.3 3.4-3 4Zm0 0v8" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8"/></svg> : <svg fill="none" height="18" viewBox="0 0 24 24" width="18"><rect height="16" rx="4" stroke="currentColor" strokeWidth="1.8" width="16" x="4" y="4"/><circle cx="9" cy="9" r="1.3" fill="currentColor"/><circle cx="15" cy="9" r="1.3" fill="currentColor"/><circle cx="9" cy="15" r="1.3" fill="currentColor"/><circle cx="15" cy="15" r="1.3" fill="currentColor"/></svg>; }

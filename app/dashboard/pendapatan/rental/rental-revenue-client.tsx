@@ -13,10 +13,12 @@ import {
   summarizeRentalMenuRevenue,
   type RevenueTransaction,
 } from "@/lib/revenue-reports";
+import { downloadRevenueExcel } from "@/lib/revenue-excel";
 
 export default function RentalRevenueClient({ rentals }: { rentals: RevenueTransaction[] }) {
   const [selectedMenuId, setSelectedMenuId] = useState<string | null>(null);
   const [period, setPeriod] = useState<PeriodFilter>({ mode: "all" });
+  const [isExporting, setIsExporting] = useState(false);
   const filteredRentals = useMemo(
     () => rentals.filter((rental) => matchesPeriod(rental, period)),
     [period, rentals],
@@ -34,6 +36,22 @@ export default function RentalRevenueClient({ rentals }: { rentals: RevenueTrans
   function handlePeriodChange(nextPeriod: PeriodFilter) {
     setPeriod(nextPeriod);
     setSelectedMenuId(null);
+  }
+
+  async function exportExcel() {
+    if (!selectedRentals.length) return;
+    setIsExporting(true);
+    try {
+      await downloadRevenueExcel({
+        transactions: selectedRentals,
+        scope: "rental",
+        periodLabel: formatExportPeriod(period),
+        reportTitle: selectedMenu ? `Pendapatan Rental ${selectedMenu.menuItemName}` : "Pendapatan Menu Rental Satu Meja",
+        filePrefix: selectedMenu ? `rental-${selectedMenu.menuItemName.toLowerCase().replaceAll(/[^a-z0-9]+/g, "-")}` : "pendapatan-menu-rental",
+      });
+    } finally {
+      setIsExporting(false);
+    }
   }
 
   return (
@@ -55,7 +73,7 @@ export default function RentalRevenueClient({ rentals }: { rentals: RevenueTrans
       </section>
 
       <section className="mt-5 rounded-[1.75rem] border border-[#ded3b1] bg-[#fffdf8] p-5 shadow-[0_18px_45px_-35px_rgba(27,58,43,0.45)] sm:p-7">
-        <div className="mb-6 flex flex-col gap-4"><div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-[10px] font-bold tracking-[0.18em] text-[#98752b] uppercase">Peringkat performa</p><h2 className="mt-1 font-baloo text-2xl font-bold text-pine">Pendapatan per menu</h2></div><p className="text-xs text-muted">Klik salah satu menu untuk melihat detail booking</p></div><ReportPeriodFilter filter={period} onChange={handlePeriodChange} transactions={rentals}/></div>
+        <div className="mb-6 flex flex-col gap-4"><div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-[10px] font-bold tracking-[0.18em] text-[#98752b] uppercase">Peringkat performa</p><h2 className="mt-1 font-baloo text-2xl font-bold text-pine">Pendapatan per menu</h2></div><p className="text-xs text-muted">Klik salah satu menu untuk melihat detail transaksi</p></div><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><ReportPeriodFilter filter={period} onChange={handlePeriodChange} transactions={rentals}/><button className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-pine px-4 text-xs font-bold text-white transition hover:bg-[#29543b] disabled:cursor-not-allowed disabled:opacity-50" disabled={!selectedRentals.length || isExporting} onClick={exportExcel} type="button"><DownloadIcon />{isExporting ? "Membuat Excel..." : "Ekspor Excel"}</button></div></div>
 
         {filteredMenuRevenue.length ? (
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -103,6 +121,9 @@ function StatCard({ dark = false, gold = false, label, value, note, icon }: { da
 
 function EmptyRental() { return <div className="grid min-h-56 place-items-center text-center"><div><span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-[#f2ecdc] text-muted"><DiceIcon/></span><p className="mt-4 font-bold text-pine">Belum ada transaksi rental</p><p className="mt-1 text-xs text-muted">Data performa menu akan tampil di sini.</p></div></div>; }
 
+function formatExportPeriod(period: PeriodFilter) { if (period.mode === "all") return "Semua periode"; if (period.mode === "day") return new Intl.DateTimeFormat("id-ID", { day: "2-digit", month: "long", year: "numeric", timeZone: "Asia/Jakarta" }).format(new Date(`${period.value}T00:00:00+07:00`)); if (period.mode === "month") return new Intl.DateTimeFormat("id-ID", { month: "long", year: "numeric", timeZone: "Asia/Jakarta" }).format(new Date(`${period.value}-01T00:00:00+07:00`)); return period.value; }
+
 function DiceIcon() { return <svg fill="none" height="19" viewBox="0 0 24 24" width="19"><rect height="16" rx="4" stroke="currentColor" strokeWidth="1.8" width="16" x="4" y="4"/><circle cx="9" cy="9" r="1.3" fill="currentColor"/><circle cx="15" cy="9" r="1.3" fill="currentColor"/><circle cx="9" cy="15" r="1.3" fill="currentColor"/><circle cx="15" cy="15" r="1.3" fill="currentColor"/></svg>; }
+function DownloadIcon() { return <svg fill="none" height="16" viewBox="0 0 24 24" width="16"><path d="M12 3v11m0 0 4-4m-4 4-4-4M5 17v2a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8"/></svg>; }
 function WalletIcon() { return <svg fill="none" height="19" viewBox="0 0 24 24" width="19"><path d="M4 7.5h15.5v11H5.8A1.8 1.8 0 0 1 4 16.7V7.5Zm0 0V6.8A1.8 1.8 0 0 1 5.8 5h11.7" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8"/><path d="M16 11h4v4h-4a2 2 0 1 1 0-4Z" stroke="currentColor" strokeWidth="1.8"/></svg>; }
 function TrophyIcon() { return <svg fill="none" height="19" viewBox="0 0 24 24" width="19"><path d="M8 4h8v4a4 4 0 0 1-8 0V4ZM12 12v4M8 20h8M10 16h4" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8"/><path d="M8 6H5v1a4 4 0 0 0 4 4M16 6h3v1a4 4 0 0 1-4 4" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8"/></svg>; }
