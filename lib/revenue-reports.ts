@@ -9,12 +9,18 @@ export interface RentalMenuAllocation {
   menuItemId: string;
   menuItemName: string;
   amount: number;
+  grossAmount: number;
+  taxAmount: number;
+  serviceChargeAmount: number;
 }
 
 export interface RevenueTransaction {
   id: string;
   source: RevenueSource;
   occurredAt: string;
+  grossAmount: number;
+  taxAmount: number;
+  serviceChargeAmount: number;
   amount: number;
   reference: string;
   description: string;
@@ -51,11 +57,17 @@ type OrderRow = {
   id: string;
   order_number: string | null;
   table_name: string | null;
+  subtotal: number | string | null;
   total: number | string | null;
   created_at: string;
   payment_status: string | null;
   payments: { method?: string | null } | { method?: string | null }[] | null;
   order_items: OrderItemRow[] | null;
+};
+
+type StoreSettingsRow = {
+  tax_percentage: number | string | null;
+  service_charge_percentage: number | string | null;
 };
 
 function list<T>(value: T | T[] | null | undefined): T[] {
@@ -86,13 +98,33 @@ function isRentalMenuItem(item: OrderItemRow): boolean {
  */
 export async function getRevenueTransactions(): Promise<RevenueTransaction[]> {
   const admin = createAdminClient();
-  const { data, error } = await admin
-    .from("orders")
-    .select(
-      "id, order_number, table_name, total, created_at, payment_status, payments(method), order_items(menu_item_id, quantity, unit_price, menu_items(name, item_type, categories(name, icon_key)))",
-    )
-    .eq("outlet_id", REPORT_OUTLET_ID)
-    .order("created_at", { ascending: false });
+  const [settingsResult, ordersResult] = await Promise.all([
+    admin
+      .from("store_settings")
+      .select("tax_percentage, service_charge_percentage")
+      .eq("outlet_id", REPORT_OUTLET_ID)
+      .maybeSingle(),
+    admin
+      .from("orders")
+      .select(
+        "id, order_number, table_name, subtotal, total, created_at, payment_status, payments(method), order_items(menu_item_id, quantity, unit_price, menu_items(name, item_type, categories(name, icon_key)))",
+      )
+      .eq("outlet_id", REPORT_OUTLET_ID)
+      .order("created_at", { ascending: false }),
+  ]);
+
+  if (settingsResult.error) {
+    throw new Error(
+      `Gagal memuat pengaturan pajak: ${settingsResult.error.message}`,
+    );
+  }
+
+  const settings = settingsResult.data as StoreSettingsRow | null;
+  const taxPercentage = numberValue(settings?.tax_percentage ?? null);
+  const serviceChargePercentage = numberValue(
+    settings?.service_charge_percentage ?? null,
+  );
+  const { data, error } = ordersResult;
 
   if (error) {
     throw new Error(`Gagal memuat pendapatan: ${error.message}`);
@@ -109,24 +141,46 @@ export async function getRevenueTransactions(): Promise<RevenueTransaction[]> {
           total + numberValue(item.quantity) * numberValue(item.unit_price),
         0,
       );
+      const grossAmount = numberValue(order.subtotal);
+      const taxAmount = Math.round((grossAmount * taxPercentage) / 100);
+      const serviceChargeAmount = Math.round(
+        (grossAmount * serviceChargePercentage) / 100,
+      );
       let remaining = numberValue(order.total);
+      let remainingGross = grossAmount;
+      let remainingTax = taxAmount;
+      let remainingServiceCharge = serviceChargeAmount;
 
       const rentalMenuAllocations = rentalItems.map((item, index) => {
         const lineValue =
           numberValue(item.quantity) * numberValue(item.unit_price);
-        const amount =
-          index === rentalItems.length - 1
-            ? remaining
+        const isLastItem = index === rentalItems.length - 1;
+        const allocatedAmount = (value: number, remainder: number) =>
+          isLastItem
+            ? remainder
             : lineTotal > 0
-              ? Math.trunc((numberValue(order.total) * lineValue) / lineTotal)
+              ? Math.trunc((value * lineValue) / lineTotal)
               : 0;
+        const amount = allocatedAmount(numberValue(order.total), remaining);
+        const allocatedGross = allocatedAmount(grossAmount, remainingGross);
+        const allocatedTax = allocatedAmount(taxAmount, remainingTax);
+        const allocatedServiceCharge = allocatedAmount(
+          serviceChargeAmount,
+          remainingServiceCharge,
+        );
         remaining -= amount;
+        remainingGross -= allocatedGross;
+        remainingTax -= allocatedTax;
+        remainingServiceCharge -= allocatedServiceCharge;
         const menuItem = list(item.menu_items)[0];
 
         return {
           menuItemId: item.menu_item_id || "unknown",
           menuItemName: menuItem?.name || "Menu rental tidak diketahui",
           amount,
+          grossAmount: allocatedGross,
+          taxAmount: allocatedTax,
+          serviceChargeAmount: allocatedServiceCharge,
         };
       });
 
@@ -134,6 +188,9 @@ export async function getRevenueTransactions(): Promise<RevenueTransaction[]> {
         id: order.id,
         source,
         occurredAt: order.created_at,
+        grossAmount,
+        taxAmount,
+        serviceChargeAmount,
         amount: numberValue(order.total),
         reference: order.order_number || order.id.slice(0, 8),
         description: source === "rental" ? "Rental" : "Pesanan FnB",
@@ -156,6 +213,9 @@ export function getRentalMenuTransactions(
       ...transaction,
       id: `${transaction.id}-${index}`,
       amount: allocation.amount,
+      grossAmount: allocation.grossAmount,
+      taxAmount: allocation.taxAmount,
+      serviceChargeAmount: allocation.serviceChargeAmount,
       description: "Rental",
       menuItemId: allocation.menuItemId,
       menuItemName: allocation.menuItemName,

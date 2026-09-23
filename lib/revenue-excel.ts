@@ -61,16 +61,46 @@ function addTransactionsSheet(
   const isRentalMenuReport = transactions.every(
     (transaction) => transaction.menuItemName,
   );
-  const total = transactions.reduce((sum, transaction) => sum + transaction.amount, 0);
+  const totals = transactions.reduce(
+    (sum, transaction) => ({
+      gross: sum.gross + transaction.grossAmount,
+      tax: sum.tax + transaction.taxAmount,
+      serviceCharge: sum.serviceCharge + transaction.serviceChargeAmount,
+      net: sum.net + transaction.amount,
+    }),
+    { gross: 0, tax: 0, serviceCharge: 0, net: 0 },
+  );
 
   sheet.addRow([sheetName]);
   sheet.addRow([`Periode: ${periodLabel}`]);
-  sheet.addRow([`Jumlah transaksi: ${transactions.length}`, `Total: ${total}`]);
+  sheet.addRow([
+    `Jumlah transaksi: ${transactions.length}`,
+    `Omzet bersih: ${totals.net}`,
+  ]);
   sheet.addRow([]);
   sheet.addRow(
     isRentalMenuReport
-      ? ["Menu rental", "Referensi", "Tanggal & waktu (WIB)", "Metode", "Pendapatan"]
-      : ["Referensi", "Kategori", "Deskripsi", "Tanggal & waktu (WIB)", "Metode", "Pendapatan"],
+      ? [
+          "Menu rental",
+          "Referensi",
+          "Tanggal & waktu (WIB)",
+          "Metode",
+          "Omzet Kotor",
+          "Pajak",
+          "Service Charge",
+          "Omzet Bersih (Net)",
+        ]
+      : [
+          "Referensi",
+          "Kategori",
+          "Deskripsi",
+          "Tanggal & waktu (WIB)",
+          "Metode",
+          "Omzet Kotor",
+          "Pajak",
+          "Service Charge",
+          "Omzet Bersih (Net)",
+        ],
   );
 
   for (const transaction of transactions) {
@@ -81,6 +111,9 @@ function addTransactionsSheet(
             transaction.reference,
             formatWibDateTime(transaction.occurredAt),
             paymentMethod(transaction.paymentMethod),
+            transaction.grossAmount,
+            transaction.taxAmount,
+            transaction.serviceChargeAmount,
             transaction.amount,
           ]
         : [
@@ -89,19 +122,23 @@ function addTransactionsSheet(
             transaction.description,
             formatWibDateTime(transaction.occurredAt),
             paymentMethod(transaction.paymentMethod),
+            transaction.grossAmount,
+            transaction.taxAmount,
+            transaction.serviceChargeAmount,
             transaction.amount,
           ],
     );
   }
 
-  const amountColumn = isRentalMenuReport ? 5 : 6;
-  sheet.getColumn(amountColumn).numFmt = '"Rp" #,##0';
+  const amountColumns = isRentalMenuReport ? [5, 6, 7, 8] : [6, 7, 8, 9];
+  for (const column of amountColumns) {
+    sheet.getColumn(column).numFmt = '"Rp" #,##0';
+  }
   sheet.getColumn(1).width = isRentalMenuReport ? 28 : 28;
   sheet.getColumn(2).width = 24;
   sheet.getColumn(3).width = isRentalMenuReport ? 24 : 28;
   sheet.getColumn(4).width = isRentalMenuReport ? 20 : 24;
-  sheet.getColumn(5).width = 20;
-  if (!isRentalMenuReport) sheet.getColumn(6).width = 20;
+  for (const column of amountColumns) sheet.getColumn(column).width = 20;
   styleSheet(sheet);
 }
 
@@ -119,27 +156,46 @@ export async function downloadRevenueExcel({
   workbook.created = new Date();
 
   const summary = workbook.addWorksheet("Ringkasan");
-  const fnbTotal = transactions
-    .filter((transaction) => transaction.source === "fnb")
-    .reduce((sum, transaction) => sum + transaction.amount, 0);
-  const rentalTotal = transactions
-    .filter((transaction) => transaction.source === "rental")
-    .reduce((sum, transaction) => sum + transaction.amount, 0);
+  const totalsFor = (source?: RevenueTransaction["source"]) =>
+    transactions
+      .filter((transaction) => !source || transaction.source === source)
+      .reduce(
+        (sum, transaction) => ({
+          gross: sum.gross + transaction.grossAmount,
+          tax: sum.tax + transaction.taxAmount,
+          serviceCharge: sum.serviceCharge + transaction.serviceChargeAmount,
+          net: sum.net + transaction.amount,
+        }),
+        { gross: 0, tax: 0, serviceCharge: 0, net: 0 },
+      );
+  const fnbTotal = totalsFor("fnb");
+  const rentalTotal = totalsFor("rental");
+  const total = totalsFor();
   summary.addRows([
     [reportTitle],
     ["Periode", periodLabel],
     ["Cakupan ekspor", scope === "separated" ? "FnB dan rental, dipisahkan per sheet" : "Sesuai pilihan ekspor"],
     ["Jumlah transaksi", transactions.length],
-    ["Pendapatan FnB", fnbTotal],
-    ["Pendapatan rental", rentalTotal],
-    ["Total pendapatan", fnbTotal + rentalTotal],
+    [],
+    ["Kategori", "Omzet Kotor", "Pajak", "Service Charge", "Omzet Bersih (Net)"],
+    ["FnB", fnbTotal.gross, fnbTotal.tax, fnbTotal.serviceCharge, fnbTotal.net],
+    ["Rental", rentalTotal.gross, rentalTotal.tax, rentalTotal.serviceCharge, rentalTotal.net],
+    ["TOTAL", total.gross, total.tax, total.serviceCharge, total.net],
   ]);
   summary.getColumn(1).width = 28;
-  summary.getColumn(2).width = 46;
-  summary.getColumn(2).numFmt = '"Rp" #,##0';
+  for (let column = 2; column <= 5; column++) {
+    summary.getColumn(column).width = 24;
+    summary.getColumn(column).numFmt = '"Rp" #,##0';
+  }
   summary.getRow(1).font = { bold: true, size: 16, color: { argb: "FF1B3A2B" } };
-  summary.getRow(7).font = { bold: true };
-  summary.getRow(7).fill = {
+  summary.getRow(6).font = { bold: true, color: { argb: "FFFFFFFF" } };
+  summary.getRow(6).fill = {
+    type: "pattern",
+    pattern: "solid",
+    fgColor: { argb: "FF1B3A2B" },
+  };
+  summary.getRow(9).font = { bold: true };
+  summary.getRow(9).fill = {
     type: "pattern",
     pattern: "solid",
     fgColor: { argb: "FFF7F1E2" },
