@@ -98,12 +98,17 @@ export default async function Home() {
               Booking langsung terkonfirmasi
             </span>
           </div>
-          <a className="hero__cta" href="#booking-form">
-            Mulai booking
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="m9 18 6-6-6-6" />
-            </svg>
-          </a>
+          <div className="hero__actions">
+            <a className="hero__cta" href="#booking-form">
+              Mulai booking
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="m9 18 6-6-6-6" />
+              </svg>
+            </a>
+            <a className="hero__cta hero__cta--secondary" href="/cek-booking">
+              Cek Booking
+            </a>
+          </div>
         </div>
 
         <div className="hero__art" aria-hidden="true">
