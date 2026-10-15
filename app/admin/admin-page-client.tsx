@@ -2,19 +2,41 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 import type { AdminBookingItem } from "@/lib/admin-bookings";
+import type { EventAd } from "@/lib/event-ads";
 
 interface AdminPageClientProps {
   authenticated: boolean;
   initialPaymentGatewayEnabled: boolean;
   hasAdminPasswordConfigured: boolean;
   bookings: AdminBookingItem[];
+  initialAds: EventAd[];
 }
 
 type BookingFilter = "all" | "review" | "verified" | "missing";
 
 const ADMIN_TIME_ZONE = "Asia/Jakarta";
+const MAX_AD_IMAGE_BYTES = 4 * 1024 * 1024;
+const AD_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
+
+function formatAdEndTime(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "—";
+  }
+
+  return `${date.toLocaleString("id-ID", {
+    timeZone: ADMIN_TIME_ZONE,
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  })} WIB`;
+}
+
 
 function formatDateTime(value: string | null) {
   if (!value) {
@@ -376,6 +398,7 @@ export default function AdminPageClient({
   initialPaymentGatewayEnabled,
   hasAdminPasswordConfigured,
   bookings,
+  initialAds,
 }: AdminPageClientProps) {
   const router = useRouter();
   const [password, setPassword] = useState("");
@@ -391,6 +414,11 @@ export default function AdminPageClient({
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [ads, setAds] = useState(initialAds);
+  const [isUploadingAd, setIsUploadingAd] = useState(false);
+  const [deletingAdPath, setDeletingAdPath] = useState<string | null>(null);
+  const [adError, setAdError] = useState<string | null>(null);
+  const [adMessage, setAdMessage] = useState<string | null>(null);
   const dayFilteredBookings = bookings.filter((booking) =>
     matchesProofUploadDay(booking, proofUploadDay),
   );
@@ -491,6 +519,89 @@ export default function AdminPageClient({
       );
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleAdUpload = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+    const image = formData.get("image");
+    const endTimeWib = formData.get("endTimeWib");
+    setAdError(null);
+    setAdMessage(null);
+
+    if (!(image instanceof File) || !image.size) {
+      setAdError("Pilih gambar iklan terlebih dahulu.");
+      return;
+    }
+    if (
+      !AD_IMAGE_TYPES.includes(image.type) ||
+      image.size > MAX_AD_IMAGE_BYTES
+    ) {
+      setAdError("Gambar harus JPG, PNG, atau WebP dengan ukuran maksimal 4 MB.");
+      return;
+    }
+    if (
+      typeof endTimeWib !== "string" ||
+      !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(endTimeWib)
+    ) {
+      setAdError("Isi waktu berakhir iklan dalam WIB.");
+      return;
+    }
+
+    setIsUploadingAd(true);
+    try {
+      const response = await fetch("/api/admin/ads", {
+        method: "POST",
+        body: formData,
+      });
+      const payload = (await response.json().catch(() => ({}))) as {
+        error?: string;
+        ad?: EventAd;
+      };
+      const uploadedAd = payload.ad;
+      if (!response.ok || !uploadedAd) {
+        throw new Error(payload.error || "Gagal mengunggah iklan.");
+      }
+
+      setAds((current) => [...current, uploadedAd]);
+      setAdMessage("Iklan berhasil ditambahkan.");
+      form.reset();
+      router.refresh();
+    } catch (err) {
+      setAdError(err instanceof Error ? err.message : "Gagal mengunggah iklan.");
+    } finally {
+      setIsUploadingAd(false);
+    }
+  };
+
+  const handleAdDelete = async (path: string) => {
+    setDeletingAdPath(path);
+    setAdError(null);
+    setAdMessage(null);
+
+    try {
+      const response = await fetch("/api/admin/ads", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ path }),
+      });
+      const payload = (await response.json().catch(() => ({}))) as {
+        error?: string;
+        ok?: boolean;
+      };
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.error || "Gagal menghapus iklan.");
+      }
+
+      setAds((current) => current.filter((ad) => ad.path !== path));
+      setAdMessage("Iklan berhasil dihapus.");
+      router.refresh();
+    } catch (err) {
+      setAdError(err instanceof Error ? err.message : "Gagal menghapus iklan.");
+    } finally {
+      setDeletingAdPath(null);
     }
   };
 
@@ -690,6 +801,147 @@ export default function AdminPageClient({
             {paymentGatewayEnabled
               ? "Status: DOKU aktif"
               : "Status: Upload bukti transfer"}
+          </div>
+        </div>
+
+        <div style={{ ...sectionStyle, marginTop: "20px" }}>
+          <h2
+            style={{
+              margin: 0,
+              fontFamily: "var(--font-baloo)",
+              fontSize: "22px",
+              lineHeight: "24px",
+              color: "#1b3a2b",
+            }}
+          >
+            Gambar Promo Beranda
+          </h2>
+          <p
+            style={{
+              margin: "10px 0 16px",
+              fontSize: "14px",
+              lineHeight: "21px",
+              color: "#5c6b60",
+            }}
+          >
+            Tambahkan beberapa gambar promo. Iklan berhenti tampil setelah waktu berakhir.
+          </p>
+          {adError ? (
+            <div role="alert" style={alertErrorStyle}>{adError}</div>
+          ) : null}
+          {adMessage ? (
+            <div role="status" style={alertOkStyle}>{adMessage}</div>
+          ) : null}
+          <form onSubmit={handleAdUpload}>
+            <label
+              htmlFor="admin-ad-image"
+              style={{
+                display: "block",
+                marginBottom: "6px",
+                fontWeight: 700,
+                color: "#1b3a2b",
+              }}
+            >
+              Gambar promo (JPG, PNG, WebP; maks. 4 MB)
+            </label>
+            <input
+              id="admin-ad-image"
+              name="image"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              required
+              style={inputStyle}
+            />
+            <label
+              htmlFor="admin-ad-end-time"
+              style={{
+                display: "block",
+                margin: "16px 0 6px",
+                fontWeight: 700,
+                color: "#1b3a2b",
+              }}
+            >
+              Waktu berakhir (WIB)
+            </label>
+            <input
+              id="admin-ad-end-time"
+              name="endTimeWib"
+              type="datetime-local"
+              required
+              style={inputStyle}
+            />
+            <button
+              type="submit"
+              disabled={isUploadingAd || deletingAdPath !== null}
+              style={{
+                ...primaryButtonStyle,
+                opacity: isUploadingAd || deletingAdPath !== null ? 0.45 : 1,
+                cursor: isUploadingAd || deletingAdPath !== null ? "not-allowed" : "pointer",
+              }}
+            >
+              {isUploadingAd ? "Mengunggah..." : "Tambahkan Gambar"}
+            </button>
+          </form>
+          <div style={{ marginTop: "24px" }}>
+            {ads.length === 0 ? (
+              <p style={{ margin: 0, color: "#5c6b60", fontSize: "14px" }}>
+                Belum ada gambar promo aktif.
+              </p>
+            ) : (
+              <div style={{ display: "grid", gap: "16px" }}>
+                {ads.map((ad) => (
+                  <div
+                    key={ad.path}
+                    style={{
+                      border: "1px solid #eadfbc",
+                      borderRadius: "16px",
+                      padding: "12px",
+                      backgroundColor: "#fffdf7",
+                    }}
+                  >
+                    <Image
+                      src={ad.url}
+                      alt="Pratinjau gambar promo"
+                      width={640}
+                      height={360}
+                      unoptimized
+                      style={{
+                        display: "block",
+                        width: "100%",
+                        height: "180px",
+                        objectFit: "contain",
+                        borderRadius: "10px",
+                        backgroundColor: "#fff",
+                      }}
+                    />
+                    <p
+                      style={{
+                        margin: "12px 0 0",
+                        color: "#1b3a2b",
+                        fontSize: "14px",
+                      }}
+                    >
+                      Berakhir: <strong>{formatAdEndTime(ad.endTime)}</strong>
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => handleAdDelete(ad.path)}
+                      disabled={isUploadingAd || deletingAdPath !== null}
+                      style={{
+                        ...ghostButtonStyle,
+                        marginTop: "12px",
+                        opacity: isUploadingAd || deletingAdPath !== null ? 0.45 : 1,
+                        cursor: isUploadingAd || deletingAdPath !== null ? "not-allowed" : "pointer",
+                      }}
+                    >
+                      {deletingAdPath === ad.path
+                        ? "Menghapus..."
+                        : "Hapus gambar"}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 

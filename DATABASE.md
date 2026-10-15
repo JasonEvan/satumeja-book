@@ -213,6 +213,8 @@ Current booking-payment behavior from migration history:
 
 The bucket is private, has a 5 MiB object limit, and allows only PDF, JPEG, PNG, and WebP. The Next.js upload route applies a tighter 4 MiB limit.
 
+Website event ads are Storage-only; no `public` table or Flow POS migration was added. The server creates the public `event-ads` bucket on the first admin upload, limited to JPEG/PNG/WebP and 4 MiB per object. Admin uploads and deletes use the service-role client after verifying the admin cookie. Objects use `end-<UTC epoch milliseconds>-<UUID>.<extension>` as their full path; the timestamp is converted from the admin's WIB `datetime-local` value using UTC+07:00. Public-page listing excludes objects with `end_time <= now`; the Vercel nightly job deletes those objects. Public object downloads are intended, but anonymous/authenticated Storage write policies must not permit edits to this bucket; verify existing project-wide Storage policies before deployment.
+
 ## Security note
 
 At the time of documentation, a zero-row/count-only request with the project publishable key showed that anonymous users can see rental rows. This is intentional in migration `20260814123000_enable_public_booking_website_access.sql`: it grants anonymous SELECT access and installs an `USING (true)` SELECT policy on `rentals`. Later migrations also grant anonymous INSERT and UPDATE privileges. `rentals` contains customer contact and payment-related metadata, so this is a high-priority exposure.

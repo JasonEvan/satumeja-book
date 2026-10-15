@@ -1,12 +1,20 @@
 import { getTables, getRates, getStoreSettings } from "@/lib/booking-service";
+import { getEventAds } from "@/lib/event-ads";
 import Image from "next/image";
 import BookingForm from "./booking-form";
+import EventAdPopup from "./event-ad-popup";
+
+export const dynamic = "force-dynamic";
 
 export default async function Home() {
   // SSR: Fetch initial data from Supabase on the server
-  const [initialTables, initialRates, initialStoreSettings] = await Promise.all(
-    [getTables(), getRates(), getStoreSettings()],
-  );
+  const [initialTables, initialRates, initialStoreSettings, ads] =
+    await Promise.all([
+      getTables(),
+      getRates(),
+      getStoreSettings(),
+      getEventAds(),
+    ]);
 
   // Structured Data (JSON-LD) for LocalBusiness SEO
   const openingHoursText = `${String(initialStoreSettings.openingHour).padStart(
@@ -32,6 +40,7 @@ export default async function Home() {
 
   return (
     <main className="booking-page">
+      <EventAdPopup ads={ads} />
       {/* JSON-LD Structured Data */}
       <script
         type="application/ld+json"
