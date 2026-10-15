@@ -62,7 +62,7 @@ export async function getAdminBookings(): Promise<AdminBookingItem[]> {
     .select(
       "id, customer_name, customer_phone, started_at, estimated_ended_at, status, payment_method, payment_verification_status, payment_proof_path, payment_proof_uploaded_at, payment_proof_mime_type, gross_amount, assets(asset_name)",
     )
-    .eq("payment_method", "manual_transfer")
+    .or("payment_method.eq.manual_transfer,payment_method.like.doku_*")
     .order("started_at", { ascending: false })
     .limit(20);
 
@@ -71,23 +71,23 @@ export async function getAdminBookings(): Promise<AdminBookingItem[]> {
   }
 
   const rentals = data as RentalRow[];
-  const proofPaths = rentals
-    .map((item) => item.payment_proof_path)
-    .filter((value): value is string => Boolean(value));
-
   const signedUrlMap = new Map<string, string | null>();
 
   await Promise.all(
-    proofPaths.map(async (proofPath) => {
-      const { data: signed, error: signedError } = await admin.storage
-        .from(PAYMENT_PROOF_BUCKET)
-        .createSignedUrl(proofPath, 60 * 60);
+    rentals
+      .filter((item) => item.payment_method === "manual_transfer")
+      .map((item) => item.payment_proof_path)
+      .filter((proofPath): proofPath is string => Boolean(proofPath))
+      .map(async (proofPath) => {
+        const { data: signed, error: signedError } = await admin.storage
+          .from(PAYMENT_PROOF_BUCKET)
+          .createSignedUrl(proofPath, 60 * 60);
 
-      signedUrlMap.set(
-        proofPath,
-        signedError ? null : signed?.signedUrl || null,
-      );
-    }),
+        signedUrlMap.set(
+          proofPath,
+          signedError ? null : signed?.signedUrl || null,
+        );
+      }),
   );
 
   return rentals.map((item) => ({

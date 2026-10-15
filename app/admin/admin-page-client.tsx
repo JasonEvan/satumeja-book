@@ -38,11 +38,21 @@ function formatCurrency(value: number | null) {
   return `Rp${Math.round(value).toLocaleString("id-ID")}`;
 }
 
+function isManualPayment(booking: AdminBookingItem) {
+  return booking.paymentMethod === "manual_transfer";
+}
 function normalizeStatus(value: string | null) {
   return value?.trim().toLowerCase() ?? "";
 }
 
+
 function getVerificationBucket(booking: AdminBookingItem): BookingFilter {
+  if (!isManualPayment(booking)) {
+    return normalizeStatus(booking.status) === "reserved"
+      ? "verified"
+      : "review";
+  }
+
   const status = normalizeStatus(booking.paymentVerificationStatus);
 
   if (!booking.proofUrl) {
@@ -61,6 +71,10 @@ function getVerificationBucket(booking: AdminBookingItem): BookingFilter {
 }
 
 function getVerificationLabel(booking: AdminBookingItem) {
+  if (!isManualPayment(booking)) {
+    return booking.paymentMethod?.startsWith("doku_") ? "DOKU" : "Gateway";
+  }
+
   const bucket = getVerificationBucket(booking);
 
   if (bucket === "missing") {
@@ -689,7 +703,7 @@ export default function AdminPageClient({
               color: "#1b3a2b",
             }}
           >
-            Booking Manual
+            Daftar Booking
           </h2>
           <p
             style={{
@@ -699,8 +713,7 @@ export default function AdminPageClient({
               color: "#5c6b60",
             }}
           >
-            Review booking manual tanpa harus melihat semua bukti pembayaran
-            sekaligus.
+            Booking manual dan DOKU terbaru.
           </p>
 
           <div className="admin-summary-grid">
@@ -710,7 +723,7 @@ export default function AdminPageClient({
                 {dayFilteredBookings.length}
               </strong>
               <span className="admin-summary-note">
-                {proofUploadDay ? "Sesuai tanggal unggah" : "Booking manual terbaru"}
+                {proofUploadDay ? "Sesuai tanggal unggah" : "Booking terbaru"}
               </span>
             </div>
             <div className="admin-summary-card">
@@ -800,7 +813,7 @@ export default function AdminPageClient({
                 color: "#5c6b60",
               }}
             >
-              Belum ada booking manual yang bisa ditampilkan.
+              Belum ada booking yang bisa ditampilkan.
             </div>
           ) : (
             <>
@@ -847,7 +860,11 @@ export default function AdminPageClient({
                               {getVerificationLabel(booking)}
                             </span>
                             <span className="admin-select-indicator">
-                              {isSelected ? "Dipilih" : "Lihat bukti"}
+                              {isSelected
+                                ? "Dipilih"
+                                : isManualPayment(booking)
+                                  ? "Lihat bukti"
+                                  : "Lihat detail"}
                             </span>
                           </div>
                           <p className="admin-booking-name">
@@ -951,89 +968,53 @@ export default function AdminPageClient({
                         </div>
                       </div>
 
-                      <div className="admin-proof-preview">
-                        {selectedBooking.proofUrl &&
-                        (selectedBooking.paymentProofMimeType?.startsWith(
-                          "image/",
-                        ) ??
-                          true) ? (
-                          <a
-                            href={selectedBooking.proofUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            style={{
-                              display: "block",
-                              width: "100%",
-                              height: "100%",
-                            }}
-                          >
-                            <img
-                              src={selectedBooking.proofUrl}
-                              alt={`Bukti pembayaran ${selectedBooking.customerName || selectedBooking.id}`}
-                              style={{
-                                display: "block",
-                                width: "100%",
-                                height: "100%",
-                                objectFit: "contain",
-                              }}
-                            />
-                          </a>
-                        ) : selectedBooking.proofUrl ? (
-                          <div
-                            style={{
-                              textAlign: "center",
-                              padding: "24px",
-                            }}
-                          >
-                            <p
-                              style={{
-                                margin: "0 0 14px",
-                                fontSize: "14px",
-                                lineHeight: "21px",
-                                color: "#5c6b60",
-                              }}
-                            >
-                              Bukti pembayaran tersedia sebagai file.
-                            </p>
+                      {isManualPayment(selectedBooking) ? (
+                        <div className="admin-proof-preview">
+                          {selectedBooking.proofUrl &&
+                          (selectedBooking.paymentProofMimeType?.startsWith(
+                            "image/",
+                          ) ??
+                            true) ? (
                             <a
                               href={selectedBooking.proofUrl}
                               target="_blank"
                               rel="noreferrer"
-                              style={{
-                                display: "inline-block",
-                                borderRadius: "12px",
-                                backgroundColor: "#1b3a2b",
-                                padding: "10px 14px",
-                                color: "#fbf7ec",
-                                fontSize: "14px",
-                                lineHeight: "18px",
-                                fontWeight: 600,
-                                textDecoration: "none",
-                              }}
+                              style={{ display: "block", width: "100%", height: "100%" }}
                             >
-                              Buka File Bukti
+                              <img
+                                src={selectedBooking.proofUrl}
+                                alt={`Bukti pembayaran ${selectedBooking.customerName || selectedBooking.id}`}
+                                style={{
+                                  display: "block",
+                                  width: "100%",
+                                  height: "100%",
+                                  objectFit: "contain",
+                                }}
+                              />
                             </a>
-                          </div>
-                        ) : (
-                          <div
-                            style={{
-                              textAlign: "center",
-                              padding: "24px",
-                            }}
-                          >
-                            <p
-                              style={{
-                                margin: 0,
-                                fontSize: "14px",
-                                lineHeight: "21px",
-                                color: "#5c6b60",
-                              }}
-                            >
-                              Customer belum mengunggah bukti pembayaran.
-                            </p>
-                          </div>
-                        )}
-                      </div>
+                          ) : (
+                            <div style={{ textAlign: "center", padding: "24px" }}>
+                              <p style={{ margin: 0, fontSize: "14px", lineHeight: "21px", color: "#5c6b60" }}>
+                                Customer belum mengunggah bukti pembayaran.
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div
+                          className="admin-proof-preview"
+                          style={{
+                            display: "grid",
+                            placeItems: "center",
+                            padding: "24px",
+                            boxSizing: "border-box",
+                          }}
+                        >
+                          <p style={{ margin: 0, textAlign: "center", fontSize: "14px", lineHeight: "21px", color: "#5c6b60" }}>
+                            Pembayaran diproses melalui {selectedBooking.paymentMethod?.startsWith("doku_") ? "DOKU" : "payment gateway"}; tidak ada bukti transfer untuk ditampilkan.
+                          </p>
+                        </div>
+                      )}
 
                       <div className="admin-proof-details">
                         <div className="admin-detail-item">
