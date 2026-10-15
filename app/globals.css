@@ -1676,67 +1676,164 @@ body {
   display: grid;
   place-items: center;
   padding: 16px;
-  background: rgba(15, 29, 21, 0.76);
+  background: rgba(10, 22, 16, 0.82);
+  backdrop-filter: blur(5px);
 }
 
 .event-ad-dialog {
-  position: relative;
-  display: grid;
-  justify-items: center;
-  gap: 12px;
-  width: min(100%, 680px);
+  display: flex;
+  flex-direction: column;
+  width: min(100%, 500px);
   max-height: calc(100dvh - 32px);
-  padding: 14px;
-  border-radius: 18px;
-  background: #fffdf8;
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+  border: 1px solid rgba(235, 225, 195, 0.2);
+  border-radius: 22px;
+  background: #17281f;
+  box-shadow: 0 32px 90px rgba(0, 0, 0, 0.48);
+}
+
+.event-ad-header {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 66px;
+  padding: 10px 16px 10px 22px;
+}
+
+.event-ad-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #fbf7ec;
+}
+
+.event-ad-brand-line {
+  width: 3px;
+  height: 32px;
+  border-radius: 3px;
+  background: #d6b45d;
+}
+
+.event-ad-brand strong,
+.event-ad-brand span:last-child {
+  display: block;
+}
+
+.event-ad-brand strong {
+  font-family: var(--font-baloo);
+  font-size: 19px;
+  line-height: 1;
+}
+
+.event-ad-brand span:last-child {
+  margin-top: 3px;
+  color: #d6b45d;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.event-ad-close,
+.event-ad-arrows button {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid rgba(251, 247, 236, 0.24);
+  border-radius: 12px;
+  background: rgba(251, 247, 236, 0.08);
+  color: #fbf7ec;
+  cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+.event-ad-close:hover,
+.event-ad-arrows button:hover {
+  border-color: #d6b45d;
+  background: rgba(214, 180, 93, 0.18);
+}
+
+.event-ad-close:focus-visible,
+.event-ad-arrows button:focus-visible {
+  outline: 2px solid #d6b45d;
+  outline-offset: 3px;
+}
+
+.event-ad-close svg,
+.event-ad-arrows svg {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.event-ad-stage {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  height: min(72dvh, 650px);
+  max-height: calc(100dvh - 158px);
+  overflow: hidden;
+  background: #0d1712;
 }
 
 .event-ad-image {
-  width: auto;
-  height: auto;
-  max-width: 100%;
-  max-height: calc(100dvh - 130px);
-  object-fit: contain;
-  border-radius: 8px;
-}
-
-.event-ad-close {
   position: absolute;
-  top: 20px;
-  right: 20px;
-  z-index: 1;
-  display: grid;
-  place-items: center;
-  width: 42px;
-  height: 42px;
-  border: 0;
-  border-radius: 50%;
-  background: #fffdf8;
-  color: #1b3a2b;
-  font-size: 32px;
-  line-height: 1;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
-  cursor: pointer;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .event-ad-controls {
   display: flex;
+  flex: none;
   align-items: center;
-  gap: 20px;
-  color: #1b3a2b;
-  font-weight: 700;
+  justify-content: space-between;
+  min-height: 68px;
+  padding: 10px 18px 10px 24px;
+  border-top: 1px solid rgba(251, 247, 236, 0.1);
+  color: #fbf7ec;
 }
 
-.event-ad-controls button {
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  border: 1px solid #d8cfa9;
-  border-radius: 50%;
-  background: #fffdf8;
-  color: #1b3a2b;
-  font-size: 30px;
-  cursor: pointer;
+.event-ad-position {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.event-ad-position strong {
+  color: #d6b45d;
+  font-size: 22px;
+}
+
+.event-ad-position span {
+  color: rgba(251, 247, 236, 0.56);
+}
+
+.event-ad-arrows {
+  display: flex;
+  gap: 8px;
+}
+
+@media (max-width: 520px) {
+  .event-ad-backdrop {
+    padding: 12px;
+  }
+
+  .event-ad-header {
+    min-height: 60px;
+  }
+
+  .event-ad-stage {
+    max-height: calc(100dvh - 148px);
+  }
 }
